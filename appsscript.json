@@ -1,0 +1,29 @@
+{
+  "timeZone": "America/New_York",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/script.scriptapp",
+    "https://www.googleapis.com/auth/forms",
+    "https://www.googleapis.com/auth/calendar",
+    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.google.com/calendar/feeds"
+  ],
+  "addOns": {
+    "common": {
+      "name": "CommonTime",
+      "logoUrl": "https://www.gstatic.com/images/branding/product/1x/avatar_square_blue_512dp.png",
+      "layoutProperties": {
+        "primaryColor": "#4285F4"
+      },
+      "homepageTrigger": {
+        "runFunction": "onFormAddonOpen"
+      }
+    },
+    
+    "forms": {}
+  }
+}

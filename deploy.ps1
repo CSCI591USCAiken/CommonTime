@@ -21,4 +21,4 @@ git push origin main
 Write-Host "Done! Apps Script, GitHub, and Jira have all been updated." -ForegroundColor Green
 
 
-#powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -JiraIssueKey "KAN-123" -CommitMessage "Implemented auth sync script"
+# powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -JiraIssueKey "KAN-19" -CommitMessage "Implemented auth sync script"

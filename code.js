@@ -122,7 +122,7 @@ Instructions:
 
     // Loop through fallback models if a 404 occurs
     for (const model of modelsToTry) {
-        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         
         const options = {
             "method": "post",

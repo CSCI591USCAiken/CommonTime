@@ -82,7 +82,7 @@ function geminiParse(input) {
     const nowISO = new Date().toISOString();
 
     // 2. Use standard production model target
-    const model = 'gemini-3.5-flash'; 
+    const model = 'gemini-2.5-flash'; 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     // 3. Anchor the LLM prompt with absolute reference time and ISO offset requirements

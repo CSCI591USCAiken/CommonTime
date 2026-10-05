@@ -77,20 +77,15 @@ function geminiParse(input) {
         throw new Error("Missing 'gemini_api_key' in Script Properties.");
     }
 
-    // 1. Get current time and active timezone from Google Apps Script context
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
 
-    // 2. Use standard production model target
-    const model = 'gemini-2.5-flash'; 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-    // 3. Anchor the LLM prompt with absolute reference time and ISO offset requirements
+    // Primary model and fallback options in order of preference
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-flash'];
+    
     const prompt = `You are a professional calendar scheduling assistant. 
-Extract meeting timing details from the user input. 
-Create the meeting based on the time the user states they are available. If multiple users submit times,
-try to place the event at a time that satisfies the most possible users. Make the event an RSVP so users can accept or reject
-the time as necessary.
+Extract meeting timing details from the user input.
+Determine the start and end times based on the availability stated by the user.
 
 Context Information:
 - Current Time (ISO): ${nowISO}
@@ -100,8 +95,8 @@ User Input:
 "${input}"
 
 Instructions:
-- Convert any relative terms (e.g., "tomorrow", "next Friday at 2pm") into full ISO 8601 strings.
-- Include the exact timezone offset in the return string (e.g., "2026-10-01T14:00:00-04:00").
+- Convert any relative time expressions (e.g., "tomorrow at 3pm") into absolute ISO 8601 strings.
+- Include the exact timezone offset in the returned string (e.g., "2026-10-01T14:00:00-04:00").
 - If duration is unspecified, assume a 30-minute duration.`;
 
     const payload = {
@@ -114,14 +109,8 @@ Instructions:
                 "type": "OBJECT",
                 "properties": {
                     "summary": { "type": "STRING" },
-                    "startTime": { 
-                        "type": "STRING", 
-                        "description": "ISO 8601 formatted date-time string WITH offset, e.g. 2026-10-01T15:00:00-04:00" 
-                    },
-                    "endTime": { 
-                        "type": "STRING", 
-                        "description": "ISO 8601 formatted date-time string WITH offset, e.g. 2026-10-01T16:00:00-04:00" 
-                    },
+                    "startTime": { "type": "STRING" },
+                    "endTime": { "type": "STRING" },
                     "description": { "type": "STRING" }
                 },
                 "required": ["summary", "startTime", "endTime"]
@@ -129,26 +118,36 @@ Instructions:
         }
     };
 
-    const options = {
-        "method": "post",
-        "contentType": "application/json",
-        "payload": JSON.stringify(payload),
-        "muteHttpExceptions": true
-    };
+    let lastError = null;
 
-    const response = UrlFetchApp.fetch(url, options);
-    const responseCode = response.getResponseCode();
-    const responseText = response.getContentText();
+    // Loop through fallback models if a 404 occurs
+    for (const model of modelsToTry) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        
+        const options = {
+            "method": "post",
+            "contentType": "application/json",
+            "payload": JSON.stringify(payload),
+            "muteHttpExceptions": true
+        };
 
-    if (responseCode !== 200) {
-        Logger.log(`Gemini API Error (Status ${responseCode}):\n${responseText}`);
-        throw new Error(`Gemini API returned status code ${responseCode}`);
+        const response = UrlFetchApp.fetch(url, options);
+        const responseCode = response.getResponseCode();
+        const responseText = response.getContentText();
+
+        if (responseCode === 200) {
+            const jsonResponse = JSON.parse(responseText);
+            const rawText = jsonResponse.candidates[0].content.parts[0].text;
+            return JSON.parse(rawText);
+        } else if (responseCode === 404) {
+            Logger.log(`Model ${model} returned 404. Trying next model...`);
+            lastError = `Model ${model} not found.`;
+        } else {
+            throw new Error(`Gemini API Error (Status ${responseCode}): ${responseText}`);
+        }
     }
 
-    const jsonResponse = JSON.parse(responseText);
-    const rawText = jsonResponse.candidates[0].content.parts[0].text;
-
-    return JSON.parse(rawText);
+    throw new Error(`All model endpoints failed. Last error: ${lastError}`);
 }
 
 //Create Event on Calendar

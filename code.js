@@ -139,8 +139,8 @@ Instructions:
             const jsonResponse = JSON.parse(responseText);
             const rawText = jsonResponse.candidates[0].content.parts[0].text;
             return JSON.parse(rawText);
-        } else if (responseCode === 404) {
-            Logger.log(`Model ${model} returned 404. Trying next model...`);
+        } else if (responseCode === 404 || responseCode === 503) {
+            Logger.log(`Model ${model} returned error. Trying next model...`);
             lastError = `Model ${model} not found.`;
         } else {
             throw new Error(`Gemini API Error (Status ${responseCode}): ${responseText}`);

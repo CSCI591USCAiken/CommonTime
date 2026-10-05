@@ -153,6 +153,7 @@ Instructions:
 //Create Event on Calendar
 function createCalendarEvent(eventData) {
     const cal = CalendarApp.getDefaultCalendar();
+    const scriptTimeZone = Session.getScriptTimeZone();
     const calendarTimeZone = cal.getTimeZone();
 
     Logger.log(`--- Event Creation Diagnostics ---`);

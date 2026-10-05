@@ -41,6 +41,9 @@ function onFormAddonOpen(e) {
 
 function onFormSubmit(e) {
     try {
+        //Extract user's email
+        const respEmail = e.response.getRespondentEmail();
+
         // get user's response
         const itemResp = e.response.getItemResponses();
         let userTxtResp = "";
@@ -56,6 +59,8 @@ function onFormSubmit(e) {
         const parsedData = geminiParse(userTxtResp);
 
         if (parsedData && parsedData.startTime && parsedData.endTime) {
+            parsedData.guestEmail = respEmail;
+
             //Create G. Calendar event
             createCalendarEvent(parsedData);
         } else {
@@ -96,7 +101,8 @@ User Input:
 
 Instructions:
 - Convert any relative terms (e.g., "tomorrow", "next Friday at 2pm") into full ISO 8601 strings.
-- Include the exact timezone offset in the return string (e.g., "2026-10-01T14:00:00-04:00").`;
+- Include the exact timezone offset in the return string (e.g., "2026-10-01T14:00:00-04:00").
+- If duration is unspecified, assume a 30-minute duration.`;
 
     const payload = {
         "contents": [{
@@ -148,7 +154,6 @@ Instructions:
 //Create Event on Calendar
 function createCalendarEvent(eventData) {
     const cal = CalendarApp.getDefaultCalendar();
-    const scriptTimeZone = Session.getScriptTimeZone();
     const calendarTimeZone = cal.getTimeZone();
 
     Logger.log(`--- Event Creation Diagnostics ---`);
@@ -189,8 +194,13 @@ function createCalendarEvent(eventData) {
     // Construct event
     const title = eventData.summary || "CommonTime Scheduled Meeting";
     const options = {
-        description: eventData.description || "Scheduled with CommonTime Add-On"
+        description: eventData.description || "Scheduled with CommonTime Add-On",
+        sendInvites: true
     };
+
+    if(eventData.guestEmail) {
+        options.guests = eventData.guestEmail;
+    }
 
     const event = cal.createEvent(title, startTime, endTime, options);
     Logger.log(`Successfully created event: ID ${event.getId()}`);

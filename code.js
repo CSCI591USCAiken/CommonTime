@@ -81,7 +81,7 @@ function geminiParse(input) {
     const nowISO = new Date().toISOString();
 
     // Primary model and fallback options in order of preference
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-flash'];
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'];
     
     const prompt = `You are a professional calendar scheduling assistant. 
 Extract meeting timing details from the user input.
@@ -122,7 +122,7 @@ Instructions:
 
     // Loop through fallback models if a 404 occurs
     for (const model of modelsToTry) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
         
         const options = {
             "method": "post",

@@ -1,3 +1,20 @@
+// Deprecated: Hard coded version of add-on
+/*
+function onFormAddonOpen(e) {
+    Logger.log("Add-on opened. Event object: " + JSON.stringify(e));
+
+    const card = CardService.newCardBuilder()
+        .setHeader(CardService.newCardHeader().setTitle("CommonTime Scheduler"))
+        .addSection(
+            CardService.newCardSection().addWidget(
+                CardService.newTextParagraph().setText("Welcome to CommonTime! Submit a form entry.")
+            )
+        )
+        .build();
+
+    return [card];
+}
+
 const FORM_ID = '1224liCQoT93XDfEdzQKYZWE-mCny4ILcRekJANnmPfo';
 
 function setupFormTrigger() {
@@ -21,23 +38,95 @@ function setupFormTrigger() {
 
     Logger.log('Trigger successfully linked to Form: ' + form.getTitle());
 }
+*/
 
+
+//This is an experimental change to convert this fully into an addon:
 
 function onFormAddonOpen(e) {
-    Logger.log("Add-on opened. Event object: " + JSON.stringify(e));
-
-    const card = CardService.newCardBuilder()
-        .setHeader(CardService.newCardHeader().setTitle("CommonTime Scheduler"))
-        .addSection(
-            CardService.newCardSection().addWidget(
-                CardService.newTextParagraph().setText("Welcome to CommonTime! Submit a form entry.")
-            )
-        )
-        .build();
-
-    return [card];
+    return [buildCard()];
 }
 
+//Create the UI to show addon trigger status and toggle button
+function buildCard() {
+    const form = FormApp.getActiveForm();
+    const formId = form.getId();
+    const isTriggerActive = checkExistingTrigger(formId);
+
+    const statusText = isTriggerActive
+        ? "Status: Active (Syncing Submissions)"
+        : "Status Inactive";
+
+    const buttonText = isTriggerActive 
+        ? "Disable Calendar Integration" : "Enable Calendar Integreation";
+    const buttonAction = isTriggerActive
+        ? "toggleTriggerOff" : "toggleTriggerOn";
+    
+    const card = CardService.newCardBuilder()
+    .setHeader(CardService.newCardHeader().setTitle("CommonTime Scheduler"))
+    .addSection(
+        CardService.newCardSection()
+        .addWidget(CardService.newTextParagraph().setText(statusText))
+        .addWidget(
+            CardService.newTextButton()
+            .setText(buttonText)
+            .setOnClickAction(CardService.newAction().setFunctionName(buttonAction))
+        )
+    ).build();
+
+    return card;
+}
+
+//Handler to create submission trigger for current form
+function toggleTriggerOn(e) {
+    const form = FormApp.getActiveForm();
+
+    //remove any duplicate triggers
+    removeExistingTriggers(form.getId);
+
+    //create form submission trigger for active form
+    ScriptApp.newTrigger('onFormSubmit')
+        .forForm(form)
+        .onFormSubmit()
+        .create();
+    
+    return CardService.newActionResponseBuilder()
+        .setNotification(CardService.newNotification().setText("CommonTime enabled for current form"))
+        .setNavigation(CardService.newNavigation().updateCard(buildCard()))
+        .build();
+}
+
+//Handler to remove submission trigger for current form
+function toggleTriggerOff(e) {
+    const form = FormApp.getActiveForm();
+    removeExistingTriggers(form.getId());
+
+    return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText("CommonTime disabled for current form"))
+        .setNavigation(CardService.newNavigation().updateCard(buildCard()))
+        .build();
+}
+
+//Check if "onFormSubmit" trigger is active for target form
+function checkExistingTrigger(formId) {
+    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
+    return triggers.some(
+        (t) => t.getHandlerFunction() === 'onFormSubmit'
+            && t.getTriggerSourceId() === formId
+    );
+}
+
+// remove all triggers assigned to target form
+function removeExistingTriggers(formId) {
+    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
+    triggers.forEach((trigger) => {
+        if (trigger.getHandlerFunction() === 'onFormSubmit'
+            && trigger.getTriggerSourceId() === formId) {
+
+                ScriptApp.deleteTrigger(trigger);
+        }
+    });
+}
 
 function onFormSubmit(e) {
     try {

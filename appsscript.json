@@ -10,7 +10,9 @@
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/script.external_request",
     "https://www.googleapis.com/auth/calendar.readonly",
-    "https://www.google.com/calendar/feeds"
+    "https://www.google.com/calendar/feeds",
+    "https://www.googleapis.com/auth/forms.currentonly",
+    "https://www.googleapis.com/auth/script.scriptapp"
   ],
   "addOns": {
     "common": {
@@ -22,8 +24,6 @@
       "homepageTrigger": {
         "runFunction": "onFormAddonOpen"
       }
-    },
-    
-    "forms": {}
+    }
   }
 }

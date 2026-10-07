@@ -42,6 +42,18 @@ function setupFormTrigger() {
 
 
 //This is an experimental change to convert this fully into an addon:
+function onOpen(e) {
+  FormApp.getUi()
+    .createAddonMenu()
+    .addItem('Open CommonTime', 'showSidebar')
+    .addToUi();
+}
+
+function showSidebar() {
+  const ui = HtmlService.createHtmlOutputFromFile('Sidebar')
+    .setTitle('CommonTime Scheduler');
+  FormApp.getUi().showSidebar(ui);
+}
 
 function onFormAddonOpen(e) {
     // The event object provides target draft information for Google Forms

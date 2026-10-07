@@ -20,11 +20,11 @@
       "layoutProperties": {
         "primaryColor": "#4285F4"
       }
-    }
-  },
-  "forms":{
-    "homepageTrigger": {
+    },
+    "forms": {
+      "homepageTrigger": {
         "runFunction": "onFormAddonOpen"
       }
+    }
   }
 }

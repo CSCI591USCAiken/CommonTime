@@ -58,7 +58,7 @@ function buildCard() {
         : "Status Inactive";
 
     const buttonText = isTriggerActive 
-        ? "Disable Calendar Integration" : "Enable Calendar Integreation";
+        ? "Disable Calendar Integration" : "Enable Calendar Integration";
     const buttonAction = isTriggerActive
         ? "toggleTriggerOff" : "toggleTriggerOn";
     
@@ -82,7 +82,7 @@ function toggleTriggerOn(e) {
     const form = FormApp.getActiveForm();
 
     //remove any duplicate triggers
-    removeExistingTriggers(form.getId);
+    removeExistingTriggers(form.getId());
 
     //create form submission trigger for active form
     ScriptApp.newTrigger('onFormSubmit')

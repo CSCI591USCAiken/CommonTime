@@ -44,37 +44,47 @@ function setupFormTrigger() {
 //This is an experimental change to convert this fully into an addon:
 
 function onFormAddonOpen(e) {
-    return [buildCard()];
+    // The event object provides target draft information for Google Forms
+    const formId = e && e.draftMetadata ? e.draftMetadata.formId : null;
+    return [buildCard(formId)];
 }
 
-//Create the UI to show addon trigger status and toggle button
-function buildCard() {
-    const form = FormApp.getActiveForm();
-    const formId = form.getId();
-    const isTriggerActive = checkExistingTrigger(formId);
+function buildCard(formId) {
+    // Fallback to active form if test running manually from Apps Script editor
+    if (!formId) {
+        const activeForm = FormApp.getActiveForm();
+        if (activeForm) formId = activeForm.getId();
+    }
+
+    const isTriggerActive = formId ? checkExistingTrigger(formId) : false;
 
     const statusText = isTriggerActive
         ? "Status: Active (Syncing Submissions)"
-        : "Status Inactive";
+        : "Status: Inactive";
 
     const buttonText = isTriggerActive 
-        ? "Disable Calendar Integration" : "Enable Calendar Integration";
+        ? "Disable Calendar Integration" 
+        : "Enable Calendar Integration";
+        
     const buttonAction = isTriggerActive
-        ? "toggleTriggerOff" : "toggleTriggerOn";
+        ? "toggleTriggerOff" 
+        : "toggleTriggerOn";
     
-    const card = CardService.newCardBuilder()
-    .setHeader(CardService.newCardHeader().setTitle("CommonTime Scheduler"))
-    .addSection(
-        CardService.newCardSection()
-        .addWidget(CardService.newTextParagraph().setText(statusText))
-        .addWidget(
-            CardService.newTextButton()
-            .setText(buttonText)
-            .setOnClickAction(CardService.newAction().setFunctionName(buttonAction))
-        )
-    ).build();
-
-    return card;
+    return CardService.newCardBuilder()
+        .setHeader(CardService.newCardHeader().setTitle("CommonTime Scheduler"))
+        .addSection(
+            CardService.newCardSection()
+                .addWidget(CardService.newTextParagraph().setText(statusText))
+                .addWidget(
+                    CardService.newTextButton()
+                        .setText(buttonText)
+                        .setOnClickAction(
+                            CardService.newAction()
+                                .setFunctionName(buttonAction)
+                                .setParameters({ formId: formId || "" })
+                        )
+                )
+        ).build();
 }
 
 //Handler to create submission trigger for current form

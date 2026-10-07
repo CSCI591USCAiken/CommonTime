@@ -19,10 +19,12 @@
       "logoUrl": "https://www.gstatic.com/images/branding/product/1x/avatar_square_blue_512dp.png",
       "layoutProperties": {
         "primaryColor": "#4285F4"
-      },
-      "homepageTrigger": {
-        "runFunction": "onFormAddonOpen"
       }
     }
+  },
+  "forms":{
+    "homepageTrigger": {
+        "runFunction": "onFormAddonOpen"
+      }
   }
 }

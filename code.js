@@ -1,101 +1,47 @@
-function onFormAddonOpen(e) {
-    // The event object provides target draft information for Google Forms
-    const formId = e && e.draftMetadata ? e.draftMetadata.formId : null;
-    return [buildCard(formId)];
+// Automatically adds the menu option to the Google Form editor
+function onOpen(e) {
+    FormApp.getUi()
+        .createAddonMenu()
+        .addItem('Open CommonTime', 'showSidebar')
+        .addToUi();
 }
 
-function buildCard(formId) {
-    // Fallback to active form if test running manually from Apps Script editor
-    if (!formId) {
-        const activeForm = FormApp.getActiveForm();
-        if (activeForm) formId = activeForm.getId();
-    }
-
-    const isTriggerActive = formId ? checkExistingTrigger(formId) : false;
-
-    const statusText = isTriggerActive
-        ? "Status: Active (Syncing Submissions)"
-        : "Status: Inactive";
-
-    const buttonText = isTriggerActive 
-        ? "Disable Calendar Integration" 
-        : "Enable Calendar Integration";
-        
-    const buttonAction = isTriggerActive
-        ? "toggleTriggerOff" 
-        : "toggleTriggerOn";
-    
-    return CardService.newCardBuilder()
-        .setHeader(CardService.newCardHeader().setTitle("CommonTime Scheduler"))
-        .addSection(
-            CardService.newCardSection()
-                .addWidget(CardService.newTextParagraph().setText(statusText))
-                .addWidget(
-                    CardService.newTextButton()
-                        .setText(buttonText)
-                        .setOnClickAction(
-                            CardService.newAction()
-                                .setFunctionName(buttonAction)
-                                .setParameters({ formId: formId || "" })
-                        )
-                )
-        ).build();
+// Opens the custom HTML sidebar
+function showSidebar() {
+    const ui = HtmlService.createHtmlOutputFromFile('Sidebar')
+        .setTitle('CommonTime Scheduler');
+    FormApp.getUi().showSidebar(ui);
 }
 
-// Handler to create submission trigger for current form
-function toggleTriggerOn(e) {
-    const formId = e && e.parameters ? e.parameters.formId : null;
-    const form = formId ? FormApp.openById(formId) : FormApp.getActiveForm();
-
-    if (!form) {
-        throw new Error("Unable to determine target form for trigger.");
-    }
-
-    // Remove any duplicate triggers
+// Handler to create submission trigger for current form from your sidebar/code
+function toggleTriggerOn() {
+    const form = FormApp.getActiveForm();
     removeExistingTriggers(form.getId());
 
-    // Create form submission trigger for active form
     ScriptApp.newTrigger('onFormSubmit')
         .forForm(form)
         .onFormSubmit()
         .create();
     
-    return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("CommonTime enabled for current form"))
-        .setNavigation(CardService.newNavigation().updateCard(buildCard(form.getId())))
-        .build();
+    Logger.log("CommonTime enabled for form: " + form.getTitle());
 }
 
-// Handler to remove submission trigger for current form
-function toggleTriggerOff(e) {
-    const formId = e && e.parameters ? e.parameters.formId : null;
-    const form = formId ? FormApp.openById(formId) : FormApp.getActiveForm();
-
-    if (!form) {
-        throw new Error("Unable to determine target form for trigger.");
-    }
-
+function toggleTriggerOff() {
+    const form = FormApp.getActiveForm();
     removeExistingTriggers(form.getId());
-
-    return CardService.newActionResponseBuilder()
-        .setNotification(CardService.newNotification().setText("CommonTime disabled for current form"))
-        .setNavigation(CardService.newNavigation().updateCard(buildCard(form.getId())))
-        .build();
+    Logger.log("CommonTime disabled for form: " + form.getTitle());
 }
 
-// Check if "onFormSubmit" trigger is active for target form
 function checkExistingTrigger(formId) {
-    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm() || FormApp.openById(formId));
+    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
     return triggers.some(
         (t) => t.getHandlerFunction() === 'onFormSubmit'
             && t.getTriggerSourceId() === formId
     );
 }
 
-// Remove all triggers assigned to target form
 function removeExistingTriggers(formId) {
-    const form = FormApp.getActiveForm() || FormApp.openById(formId);
-    const triggers = ScriptApp.getUserTriggers(form);
+    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
     triggers.forEach((trigger) => {
         if (trigger.getHandlerFunction() === 'onFormSubmit'
             && trigger.getTriggerSourceId() === formId) {
@@ -115,8 +61,6 @@ function onFormSubmit(e) {
                 + ": " + itemResp[i].getResponse() + "\n";
         }
 
-        Logger.log("Raw Response:\n" + userTxtResp);
-
         const parsedData = geminiParse(userTxtResp);
 
         if (parsedData && parsedData.startTime && parsedData.endTime) {
@@ -132,39 +76,16 @@ function onFormSubmit(e) {
 
 function geminiParse(input) {
     const apiKey = PropertiesService.getScriptProperties().getProperty('gemini_api_key');
-    if (!apiKey) {
-        throw new Error("Missing 'gemini_api_key' in Script Properties.");
-    }
+    if (!apiKey) throw new Error("Missing 'gemini_api_key' in Script Properties.");
 
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
-
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash',
-         'gemini-2.5-flash', 'gemini-2.5-pro',
-         'gemini-1.5-flash', 'gemini-flash-latest'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash'];
     
-    const prompt = `You are a professional calendar scheduling assistant. 
-Extract meeting timing details from the user input.
-Determine the start and end times based on the availability stated by the user.
-
-Context Information:
-- Current Time (ISO): 
-${nowISO}
-- Target Timezone: 
-${timezone}
-
-User Input:
-"${input}"
-
-Instructions:
-- Convert any relative time expressions (e.g., "tomorrow at 3pm") into absolute ISO 8601 strings.
-- Include the exact timezone offset in the returned string (e.g., "2026-10-01T14:00:00-04:00").
-- If duration is unspecified, assume a 30-minute duration.`;
+    const prompt = `Extract meeting timing details from user input as JSON with summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;
 
     const payload = {
-        "contents": [{
-            "parts": [{ "text": prompt }]
-        }],
+        "contents": [{ "parts": [{ "text": prompt }] }],
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": {
@@ -180,35 +101,21 @@ Instructions:
         }
     };
 
-    let lastError = null;
-
     for (const model of modelsToTry) {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        
-        const options = {
-            "method": "post",
-            "contentType": "application/json",
-            "payload": JSON.stringify(payload),
-            "muteHttpExceptions": true
-        };
+        const response = UrlFetchApp.fetch(url, {
+            method: "post",
+            contentType: "application/json",
+            payload: JSON.stringify(payload),
+            muteHttpExceptions: true
+        });
 
-        const response = UrlFetchApp.fetch(url, options);
-        const responseCode = response.getResponseCode();
-        const responseText = response.getContentText();
-
-        if (responseCode === 200) {
-            const jsonResponse = JSON.parse(responseText);
-            const rawText = jsonResponse.candidates[0].content.parts[0].text;
-            return JSON.parse(rawText);
-        } else if (responseCode === 404 || responseCode === 503) {
-            Logger.log(`Model ${model} returned error. Trying next model...`);
-            lastError = `Model ${model} not found.`;
-        } else {
-            throw new Error(`Gemini API Error (Status ${responseCode}): ${responseText}`);
+        if (response.getResponseCode() === 200) {
+            const jsonResponse = JSON.parse(response.getContentText());
+            return JSON.parse(jsonResponse.candidates[0].content.parts[0].text);
         }
     }
-
-    throw new Error(`All model endpoints failed. Last error: ${lastError}`);
+    throw new Error("Gemini API call failed.");
 }
 
 function createCalendarEvent(eventData) {
@@ -216,17 +123,8 @@ function createCalendarEvent(eventData) {
     const startTime = new Date(eventData.startTime);
     const endTime = new Date(eventData.endTime);
 
-    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-        throw new Error(`Invalid date format received from Gemini.`);
-    }
-
-    if (endTime <= startTime) {
-        throw new Error(`End time must be after start time.`);
-    }
-
-    const title = eventData.summary || "CommonTime Scheduled Meeting";
     const options = {
-        description: eventData.description || "Scheduled with CommonTime Add-On",
+        description: eventData.description || "Scheduled with CommonTime",
         sendInvites: true
     };
 
@@ -234,7 +132,5 @@ function createCalendarEvent(eventData) {
         options.guests = eventData.guestEmail;
     }
 
-    const event = cal.createEvent(title, startTime, endTime, options);
-    Logger.log(`Successfully created event: ID ${event.getId()}`);
-    return event;
+    return cal.createEvent(eventData.summary || "Meeting", startTime, endTime, options);
 }

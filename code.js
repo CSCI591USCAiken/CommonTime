@@ -80,7 +80,9 @@ function geminiParse(input) {
 
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash',
+         'gemini-2.5-flash', 'gemini-2.5-pro',
+         'gemini-1.5-flash', 'gemini-flash-latest'];
     
     const prompt = `Extract meeting timing details from user input as JSON with summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;
 

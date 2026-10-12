@@ -11,5 +11,17 @@
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/script.external_request"
-  ]
+  ],
+  "addOns": {
+    "common": {
+      "name": "CommonTime Scheduler",
+      "logoUrl": "https://www.gstatic.com/images/branding/product/1x/forms_48dp.png"
+    },
+    "forms": {
+      "onUninstallOpen": "onFormAddonOpen",
+      "homepageTrigger": {
+        "runFunction": "onFormAddonOpen"
+      }
+    }
+  }
 }

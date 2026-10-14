@@ -13,6 +13,22 @@ function showSidebar() {
     FormApp.getUi().showSidebar(ui);
 }
 
+
+/* experimental code: allow publisher to specify events for individuals
+    groups of people, update event each time a submission is posted or updated
+*/
+
+function setScheduleMode(mode) {
+    PropertiesService.getDocumentProperties().setProperty('SCHEDULING_MODE', mode);
+}
+
+function getScheduleMode() {
+    return PropertiesService.getDocumentProperties().getProperty('SCHEDULING_MODE');
+}
+
+/*-----------------END OF EXPERIMENTAL CODE-------------------*/
+
+
 // Handler to create submission trigger for current form from your sidebar/code
 function toggleTriggerOn() {
     const form = FormApp.getActiveForm();
@@ -22,7 +38,7 @@ function toggleTriggerOn() {
         .forForm(form)
         .onFormSubmit()
         .create();
-    
+
     Logger.log("CommonTime enabled for form: " + form.getTitle());
 }
 
@@ -45,7 +61,7 @@ function removeExistingTriggers(formId) {
     triggers.forEach((trigger) => {
         if (trigger.getHandlerFunction() === 'onFormSubmit'
             && trigger.getTriggerSourceId() === formId) {
-                ScriptApp.deleteTrigger(trigger);
+            ScriptApp.deleteTrigger(trigger);
         }
     });
 }
@@ -63,16 +79,144 @@ function onFormSubmit(e) {
 
         const parsedData = geminiParse(userTxtResp);
 
-        if (parsedData && parsedData.startTime && parsedData.endTime) {
-            parsedData.guestEmail = respEmail;
-            createCalendarEvent(parsedData);
-        } else {
+        if (!parsedData || !parsedData.startTime || !parsedData.endTime) {
             Logger.log("Gemini failed to return valid format");
+            return;
         }
+
+        parsedData.guestEmail = respEmail;
+
+        const mode = getScheduleMode();
+        if (mode === 'SINGLE') {
+            handleIndEvent(parsedData);
+        } else {
+            handleGroupEvent(parsedData);
+        }
+
     } catch (f) {
         Logger.log("Error while processing form submission: " + f.toString());
     }
 }
+
+// ==========================================
+// SINGLE MODE: CREATE EVENTS FOR EACH INDIVIDUAL SUBMISSION
+// ==========================================
+function handleIndEvent(eventData) {
+    const docProps = PropertiesService.getDocumentProperties();
+    const emailKey = 'EVENT_ID_' + eventData.guestEmail.toLowerCase();
+    const existingEventId = docProps.getProperty(emailKey);
+
+    const cal = CalendarApp.getDefaultCalendar();
+    const startTime = new Date(eventData.startTime);
+    const endTime = new Date(eventData.endTime);
+
+    const options = {
+        description: eventData.description || "Scheduled with CommonTime",
+        sendInvites: true,
+        guests: eventData.guestEmail
+    };
+
+    if (existingEventId) {
+        try {
+            const existingEvent = cal.getEventById(existingEventId);
+            if (existingEvent) {
+                existingEvent.setTime(startTime, endTime);
+                existingEvent.setTitle(eventData.summary || "Meeting");
+                existingEvent.setDescription(options.description);
+                Logger.log("Updated existing event for: " + eventData.guestEmail);
+                return;
+            }
+        } catch (err) {
+            Logger.log("No existing event found, creating new one");
+        }
+    }
+
+    //Create new event if one doesnt already exist
+
+    const newEvent = cal.createEvent(eventData.summary || "Meeting", startTime, endTime, options);
+    docProps.setProperty(emailKey, newEvent.getId());
+    Logger.log("Created new event for " + eventData.guestEmail);
+
+}
+
+// ==========================================
+// GROUP MODE: CREATE ONE EVENT THAT BEST FITS ALL SUBMISSIONS
+// ==========================================
+function handleGroupEvent(eventData) {
+    const docProps = PropertiesService.getDocumentProperties();
+    const submissionKey = "ALL_GROUP_SUBMISSIONS";
+    let submissions = JSON.parse(docProps.getProperty(submissionKey) || '{}');
+
+    submissions[eventData.guestEmail] = {
+        startTime: eventData.startTime,
+        endTime: eventData.endTime,
+        summary: eventData.summary,
+        description: eventData.description
+    };
+    docProps.setProperty(submissionKey, JSON.stringify(submissions));
+
+    const bestFit = calculateBestFit(Object.values(submissions));
+    if (!bestFit) {
+        Logger.log("No common time found yet for the group");
+        return;
+    }
+
+    const allEmails = Object.keys(submissions).join(',');
+    const cal = CalendarApp.getDefaultCalendar();
+    const groupEventIdKey = 'GROUP_MASTER_EVENT_ID';
+    const masterEventId = docProps.getProperty(groupEventIdKey);
+
+    const options = {
+        description: eventData.description || "Scheduled with CommonTime",
+        sendInvites: true,
+        guests: allEmails
+    };
+
+    if (masterEventId) {
+        try {
+            const masterEvent = cal.getEventById(masterEventId);
+            if (masterEvent) {
+                masterEvent.setTime(new Date(bestFit.startTime),
+                    new Date(bestFit.endTime));
+                masterEvent.setTitle(eventData.sumary || "Group Meeting");
+                masterEvent.setGuests(allEmails);
+                Logger.log("Updated master group event.")
+                return;
+            }
+        } catch (r) {
+            Logger.log("No master event found, creating new.");
+        }
+    }
+
+    const newMasterEvent = cal.createEvent(
+        eventData.summary || "Group Meeting",
+        new Date(bestFit.startTime),
+        new Date(bestFit.endTime),
+        options
+    );
+    docProps.setProperty(groupEventIdKey, newMasterEvent.getId());
+}
+
+function calculateBestFit(subList) {
+    if(!subList || subList.length === 0) return null;
+
+    let latestStart = new Date(Math.max(...subList.map(s => new Date(s.startTime).getTime())));
+    let earliestEnd = new Date(Math.min(...subList.map(s => new Date(s.endTime).getTime())));
+
+    if (latestStart < earliestEnd){
+        return{
+            startTime: latestStart.toISOString(),
+            endTime: earliestEnd.toISOString()
+        };
+    }
+
+    Logger.log("No overlap found, using best estimation");
+    return {
+        startTime: subList[subList.length - 1].startTime,
+        endTime: subList[subList.length - 1].endTime
+    };
+}
+
 
 function geminiParse(input) {
     const apiKey = PropertiesService.getScriptProperties().getProperty('gemini_api_key');
@@ -81,9 +225,9 @@ function geminiParse(input) {
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
     const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash',
-         'gemini-2.5-flash', 'gemini-2.5-pro',
-         'gemini-1.5-flash', 'gemini-flash-latest'];
-    
+        'gemini-2.5-flash', 'gemini-2.5-pro',
+        'gemini-1.5-flash', 'gemini-flash-latest'];
+
     const prompt = `Extract meeting timing details from user input as JSON with summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;
 
     const payload = {
@@ -127,7 +271,8 @@ function createCalendarEvent(eventData) {
 
     const options = {
         description: eventData.description || "Scheduled with CommonTime",
-        sendInvites: true
+        sendInvites: true,
+        guests: eventData.guestEmail
     };
 
     if (eventData.guestEmail) {

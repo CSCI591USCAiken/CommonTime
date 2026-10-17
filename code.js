@@ -1,73 +1,84 @@
-// Automatically adds the menu option to the Google Form editor
-function onOpen(e) {
-    FormApp.getUi()
-        .createAddonMenu()
-        .addItem('Open CommonTime', 'showSidebar')
-        .addToUi();
+// ==========================================
+// WEB APP ENTRY POINT (Handles External Website Requests)
+// ==========================================
+function doPost(e) {
+    try {
+        const data = JSON.parse(e.postData.contents);
+
+        // Expected payload structure from external site:
+        // {
+        //   "title": "Team Sprint Planning",
+        //   "mode": "GROUP", // or "SINGLE"
+        //   "timeframe": "Next week between 9am and 5pm",
+        //   "emails": ["user1@example.com", "user2@example.com"],
+        //   "description": "Please select your available time."
+        // }
+
+        const result = createCommonTimeForm(data);
+
+        return ContentService.createTextOutput(JSON.stringify({
+            status: "success",
+            formId: result.formId,
+            formUrl: result.formUrl,
+            editUrl: result.editUrl
+        })).setMimeType(ContentService.MimeType.JSON);
+
+    } catch (err) {
+        return ContentService.createTextOutput(JSON.stringify({
+            status: "error",
+            message: err.toString()
+        })).setMimeType(ContentService.MimeType.JSON);
+    }
 }
 
-// Opens the custom HTML sidebar
-function showSidebar() {
-    const ui = HtmlService.createHtmlOutputFromFile('Sidebar')
-        .setTitle('CommonTime Scheduler');
-    FormApp.getUi().showSidebar(ui);
-}
+// ==========================================
+// PROGRAMMATIC FORM CREATOR
+// ==========================================
+function createCommonTimeForm(data) {
+    // 1. Create a new Google Form in Drive
+    const form = FormApp.create(data.title || "CommonTime Scheduler");
+    const formId = form.getId();
 
+    // 2. Set up form questions (Template)
+    form.setDescription(data.description || `Time-frame: ${data.timeframe || "Standard"}`);
+    form.setCollectEmail(true); // Required for guest matching!
 
-/* experimental code: allow publisher to specify events for individuals
-    groups of people, update event each time a submission is posted or updated
-*/
+    // Add standard questions for Gemini to parse
+    form.addTextItem()
+        .setTitle("What is your available date and time?")
+        .setHelpText("e.g., Monday from 2 PM to 4 PM");
 
-function setScheduleMode(mode) {
-    PropertiesService.getDocumentProperties().setProperty('SCHEDULING_MODE', mode);
-}
+    form.addTextItem()
+        .setTitle("Meeting Summary / Notes")
+        .setRequired(false);
 
-function getScheduleMode() {
-    return PropertiesService.getDocumentProperties().getProperty('SCHEDULING_MODE');
-}
+    // 3. Save configuration in Script Properties keyed by formId
+    const scriptProps = PropertiesService.getScriptProperties();
+    scriptProps.setProperty(`MODE_${formId}`, data.mode || "SINGLE");
+    scriptProps.setProperty(`EMAILS_${formId}`, JSON.stringify(data.emails || []));
 
-/*-----------------END OF EXPERIMENTAL CODE-------------------*/
-
-
-// Handler to create submission trigger for current form from your sidebar/code
-function toggleTriggerOn() {
-    const form = FormApp.getActiveForm();
-    removeExistingTriggers(form.getId());
-
+    // 4. Automatically attach the form submission trigger
     ScriptApp.newTrigger('onFormSubmit')
         .forForm(form)
         .onFormSubmit()
         .create();
 
-    Logger.log("CommonTime enabled for form: " + form.getTitle());
+    Logger.log("Created and configured form: " + form.getTitle() + " (ID: " + formId + ")");
+
+    return {
+        formId: formId,
+        formUrl: form.getPublishedUrl(),
+        editUrl: form.getEditUrl()
+    };
 }
 
-function toggleTriggerOff() {
-    const form = FormApp.getActiveForm();
-    removeExistingTriggers(form.getId());
-    Logger.log("CommonTime disabled for form: " + form.getTitle());
-}
-
-function checkExistingTrigger(formId) {
-    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
-    return triggers.some(
-        (t) => t.getHandlerFunction() === 'onFormSubmit'
-            && t.getTriggerSourceId() === formId
-    );
-}
-
-function removeExistingTriggers(formId) {
-    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
-    triggers.forEach((trigger) => {
-        if (trigger.getHandlerFunction() === 'onFormSubmit'
-            && trigger.getTriggerSourceId() === formId) {
-            ScriptApp.deleteTrigger(trigger);
-        }
-    });
-}
-
+// ==========================================
+// FORM SUBMISSION EVENT HANDLER
+// ==========================================
 function onFormSubmit(e) {
     try {
+        const form = e.source || FormApp.openById(e.triggerSourceId);
+        const formId = form.getId();
         const respEmail = e.response.getRespondentEmail();
         const itemResp = e.response.getItemResponses();
         let userTxtResp = "";
@@ -86,11 +97,13 @@ function onFormSubmit(e) {
 
         parsedData.guestEmail = respEmail;
 
-        const mode = getScheduleMode();
+        const scriptProps = PropertiesService.getScriptProperties();
+        const mode = scriptProps.getProperty(`MODE_${formId}`) || 'SINGLE';
+
         if (mode === 'SINGLE') {
-            handleIndEvent(parsedData);
+            handleIndEvent(formId, parsedData);
         } else {
-            handleGroupEvent(parsedData);
+            handleGroupEvent(formId, parsedData);
         }
 
     } catch (f) {
@@ -101,10 +114,10 @@ function onFormSubmit(e) {
 // ==========================================
 // SINGLE MODE: CREATE EVENTS FOR EACH INDIVIDUAL SUBMISSION
 // ==========================================
-function handleIndEvent(eventData) {
-    const docProps = PropertiesService.getDocumentProperties();
-    const emailKey = 'EVENT_ID_' + eventData.guestEmail.toLowerCase();
-    const existingEventId = docProps.getProperty(emailKey);
+function handleIndEvent(formId, eventData) {
+    const scriptProps = PropertiesService.getScriptProperties();
+    const emailKey = `EVENT_${formId}_${eventData.guestEmail.toLowerCase()}`;
+    const existingEventId = scriptProps.getProperty(emailKey);
 
     const cal = CalendarApp.getDefaultCalendar();
     const startTime = new Date(eventData.startTime);
@@ -134,7 +147,7 @@ function handleIndEvent(eventData) {
     //Create new event if one doesnt already exist
 
     const newEvent = cal.createEvent(eventData.summary || "Meeting", startTime, endTime, options);
-    docProps.setProperty(emailKey, newEvent.getId());
+    scriptProps.setProperty(emailKey, newEvent.getId());
     Logger.log("Created new event for " + eventData.guestEmail);
 
 }
@@ -142,10 +155,10 @@ function handleIndEvent(eventData) {
 // ==========================================
 // GROUP MODE: CREATE ONE EVENT THAT BEST FITS ALL SUBMISSIONS
 // ==========================================
-function handleGroupEvent(eventData) {
-    const docProps = PropertiesService.getDocumentProperties();
-    const submissionKey = "ALL_GROUP_SUBMISSIONS";
-    let submissions = JSON.parse(docProps.getProperty(submissionKey) || '{}');
+function handleGroupEvent(formId, eventData) {
+    const scriptProps = PropertiesService.getScriptProperties();
+    const submissionKey = `SUBMISSIONS_${formId}`;
+    let submissions = JSON.parse(scriptProps.getProperty(submissionKey) || '{}');
 
     submissions[eventData.guestEmail] = {
         startTime: eventData.startTime,
@@ -153,7 +166,7 @@ function handleGroupEvent(eventData) {
         summary: eventData.summary,
         description: eventData.description
     };
-    docProps.setProperty(submissionKey, JSON.stringify(submissions));
+    scriptProps.setProperty(submissionKey, JSON.stringify(submissions));
 
     const bestFit = calculateBestFit(Object.values(submissions));
     if (!bestFit) {
@@ -161,10 +174,14 @@ function handleGroupEvent(eventData) {
         return;
     }
 
-    const allEmails = Object.keys(submissions).join(',');
+    // Combine invited emails from payload + submitters
+    let invitedEmails = JSON.parse(scriptProps.getProperty(`EMAILS_${formId}`) || '[]');
+    const submitterEmails = Object.keys(submissions);
+    const allEmails = Array.from(new Set([...invitedEmails, ...submitterEmails])).join(',');
+
     const cal = CalendarApp.getDefaultCalendar();
-    const groupEventIdKey = 'GROUP_MASTER_EVENT_ID';
-    const masterEventId = docProps.getProperty(groupEventIdKey);
+    const groupEventIdKey = `GROUP_MASTER_${formId}`;
+    const masterEventId = scriptProps.getProperty(groupEventIdKey);
 
     const options = {
         description: eventData.description || "Scheduled with CommonTime",
@@ -176,11 +193,10 @@ function handleGroupEvent(eventData) {
         try {
             const masterEvent = cal.getEventById(masterEventId);
             if (masterEvent) {
-                masterEvent.setTime(new Date(bestFit.startTime),
-                    new Date(bestFit.endTime));
-                masterEvent.setTitle(eventData.sumary || "Group Meeting");
+                masterEvent.setTime(new Date(bestFit.startTime), new Date(bestFit.endTime));
+                masterEvent.setTitle(eventData.summary || "Group Meeting");
                 masterEvent.setGuests(allEmails);
-                Logger.log("Updated master group event.")
+                Logger.log("Updated master group event.");
                 return;
             }
         } catch (r) {
@@ -194,23 +210,23 @@ function handleGroupEvent(eventData) {
         new Date(bestFit.endTime),
         options
     );
-    docProps.setProperty(groupEventIdKey, newMasterEvent.getId());
+    scriptProps.setProperty(groupEventIdKey, newMasterEvent.getId());
 }
 
 function calculateBestFit(subList) {
-    if(!subList || subList.length === 0) return null;
+    if (!subList || subList.length === 0) return null;
 
     let latestStart = new Date(Math.max(...subList.map(s => new Date(s.startTime).getTime())));
     let earliestEnd = new Date(Math.min(...subList.map(s => new Date(s.endTime).getTime())));
 
-    if (latestStart < earliestEnd){
-        return{
+    if (latestStart < earliestEnd) {
+        return {
             startTime: latestStart.toISOString(),
             endTime: earliestEnd.toISOString()
         };
     }
 
-    Logger.log("No overlap found, using best estimation");
+    Logger.log("No overlap found, using latest submission window");
     return {
         startTime: subList[subList.length - 1].startTime,
         endTime: subList[subList.length - 1].endTime
@@ -264,20 +280,30 @@ function geminiParse(input) {
     throw new Error("Gemini API call failed.");
 }
 
-function createCalendarEvent(eventData) {
-    const cal = CalendarApp.getDefaultCalendar();
-    const startTime = new Date(eventData.startTime);
-    const endTime = new Date(eventData.endTime);
+/*
+in web app:
 
-    const options = {
-        description: eventData.description || "Scheduled with CommonTime",
-        sendInvites: true,
-        guests: eventData.guestEmail
+async function createSchedulerForm() {
+    const payload = {
+        title: "Q3 Strategy Sync",
+        mode: "GROUP",
+        timeframe: "Next week between 1 PM and 5 PM",
+        emails: ["colleague1@example.com", "colleague2@example.com"],
+        description: "Please input your preferred timing for the sync."
     };
 
-    if (eventData.guestEmail) {
-        options.guests = eventData.guestEmail;
-    }
+    const response = await fetch("YOUR_APPS_SCRIPT_WEB_APP_URL", {
+        method: "POST",
+        body: JSON.stringify(payload)
+    });
 
-    return cal.createEvent(eventData.summary || "Meeting", startTime, endTime, options);
+    const result = await response.json();
+    if (result.status === "success") {
+        console.log("Form created successfully!");
+        console.log("Live Form URL:", result.formUrl);
+        console.log("Edit URL:", result.editUrl);
+    } else {
+        console.error("Error:", result.message);
+    }
 }
+    */

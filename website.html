@@ -23,8 +23,8 @@
           <div class="eyebrow"><i></i> Considered scheduling. Meaningful connection.</div>
           <h1>Time,<br><em>well spent.</em></h1>
           <p class="lede">Good conversations deserve a place on the calendar. Bring your availability. We'll help you
-            find the common ground.</p><a class="primary" href="#availability">Share your availability <span
-              aria-hidden="true">↗</span></a>
+            find the common ground.</p><a class="primary" href="#availability">Share your availability
+            <span aria-hidden="true">↗</span></a>
           <p class="smallprint">A simple first step toward your next good conversation.</p>
         </div>
         <div class="visual" aria-label="Abstract illustration of three schedules finding a common time"><svg
@@ -112,42 +112,46 @@
           <section class="generator-section" id="generator" style="padding: 40px 0; background: #f9f8fa;">
             <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
               <form>
-              <h2>Create a Custom Form</h2>
+                <h2>Create a Custom Form</h2>
 
-              <p>Describe what you need, and Gemini will build a custom Google Form for your schedule.</p>
+                <p>Describe what you need, and Gemini will build a custom Google Form for your schedule.</p>
 
-              <textarea id="promptInput" rows="2"
-                placeholder="e.g., I need 30-minute meetings from October 19 to October 24 from 9 a.m. to 5 p.m. ..."
-                style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
+                <textarea id="promptNeeds" rows="2"
+                  placeholder="e.g., I need 30-minute meetings from October 19 to October 24 from 9 a.m. to 5 p.m. ..."
+                  style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
 
-              <p>What is the purpose of your meeting(s)?</p>
+                <p>What is the purpose of your meeting(s)?</p>
 
-              <textarea id="promptInput" rows="1"
-                placeholder="e.g., Student Advisory, Internship interviews"
-                style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
+                <textarea id="promptReason" rows="1" placeholder="e.g., Student Advisory, Internship interviews"
+                  style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
 
-              <p>Is the meeting for multiple individuals or a group?</p>
+                <p>Is the meeting for multiple individuals or a group?</p>
 
-              <input type="radio" id="meetingInd" name="meetType" value="Individual">
-              <label for="meetingInd">Individual Meetings</label>
-              <br>
-              <input type="radio" id="meetingGroup" name="meetType" value="Group">
-              <label for="meetingGroup">Group Meeting</label>
-              <br>
+                <input type="radio" id="meetingInd" name="meetType" value="Individual">
+                <label for="meetingInd">Individual Meetings</label>
+                <br>
+                <input type="radio" id="meetingGroup" name="meetType" value="Group">
+                <label for="meetingGroup">Group Meeting</label>
+                <br>
 
-              <p>Any other information?</p>
+                <p>Any other information?</p>
 
-              <textarea id="promptInput" rows="2"
-                placeholder="I need a section added for..."
-                style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
+                <textarea id="promptInfo" rows="2" placeholder="I need a section added for..."
+                  style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
 
-              <button id="generateBtn" onclick="requestFormCreation()" class="primary" style="cursor: pointer;">Generate
-                My Form ↗</button>
+                <button id="generateBtn" onclick="requestFormCreation()" class="primary"
+                  style="cursor: pointer;">Generate
+                  My Form ↗</button>
 
-              <div id="resultArea" style="margin-top: 15px;"></div>
+                <div id="resultArea" style="margin-top: 15px;"></div>
               </form>
             </div>
           </section>
+
+          <div class="fallback">Having trouble with the form? <a
+              href="https://docs.google.com/forms/d/e/1FAIpQLSf59JOX8omkBsZxEjvzt8Jitqaen0rKoMUNG51zrUbcwPSBSg/viewform"
+              target="_blank" rel="noopener noreferrer">Open it in a new tab ↗</a></div>
+        </div>
       </section>
       <section class="faq" id="questions">
         <h2>A little clarity,<br>before we connect.</h2>
@@ -171,9 +175,8 @@
     <footer><span>◷ CommonTime · A little less scheduling. A little more time.</span><a href="#availability">Make some
         time ↗</a></footer>
   </div>
-  <div class="sample">Sample website · local preview</div><button class="motion-control" id="motionControl"
+  <button class="motion-control" id="motionControl"
     type="button" aria-pressed="false" aria-label="Pause decorative animations" hidden>Ⅱ Pause motion</button>
 </body>
 <script src="web.js"></script>
-
 </html>

@@ -7,7 +7,7 @@
   <meta name="description"
     content="A little less scheduling. A little more time together. Share your availability with CommonTime.">
   <title>CommonTime — Time, well spent.</title>
-  <link rel= "stylesheet" href="web.css">
+  <link rel="stylesheet" href="web.css">
 </head>
 
 <body>
@@ -108,13 +108,46 @@
           </div>
           <div class="form-instruction"><span class="form-step">01</span><span>Select <strong>all</strong> the times
               that work for you.<br><small>Add extra details if you need to.</small></span><span class="form-down"
-              aria-hidden="true">↓</span></div><iframe id="availabilityForm" title="CommonTime availability form"
-            src="https://forms.gle/77o6Vz6CLijgXThf7?embedded=true"
-            loading="lazy" referrerpolicy="strict-origin-when-cross-origin">Loading…</iframe>
-          <div class="fallback">Having trouble with the form? <a
-              href="https://docs.google.com/forms/d/e/1FAIpQLSf59JOX8omkBsZxEjvzt8Jitqaen0rKoMUNG51zrUbcwPSBSg/viewform"
-              target="_blank" rel="noopener noreferrer">Open it in a new tab ↗</a></div>
-        </div>
+              aria-hidden="true">↓</span></div>
+          <section class="generator-section" id="generator" style="padding: 40px 0; background: #f9f8fa;">
+            <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+              <form>
+              <h2>Create a Custom Form</h2>
+
+              <p>Describe what you need, and Gemini will build a custom Google Form for your schedule.</p>
+
+              <textarea id="promptInput" rows="2"
+                placeholder="e.g., I need 30-minute meetings from October 19 to October 24 from 9 a.m. to 5 p.m. ..."
+                style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
+
+              <p>What is the purpose of your meeting(s)?</p>
+
+              <textarea id="promptInput" rows="1"
+                placeholder="e.g., Student Advisory, Internship interviews"
+                style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
+
+              <p>Is the meeting for multiple individuals or a group?</p>
+
+              <input type="radio" id="meetingInd" name="meetType" value="Individual">
+              <label for="meetingInd">Individual Meetings</label>
+              <br>
+              <input type="radio" id="meetingGroup" name="meetType" value="Group">
+              <label for="meetingGroup">Group Meeting</label>
+              <br>
+
+              <p>Any other information?</p>
+
+              <textarea id="promptInput" rows="2"
+                placeholder="I need a section added for..."
+                style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #d8d3de;"></textarea>
+
+              <button id="generateBtn" onclick="requestFormCreation()" class="primary" style="cursor: pointer;">Generate
+                My Form ↗</button>
+
+              <div id="resultArea" style="margin-top: 15px;"></div>
+              </form>
+            </div>
+          </section>
       </section>
       <section class="faq" id="questions">
         <h2>A little clarity,<br>before we connect.</h2>
@@ -141,5 +174,6 @@
   <div class="sample">Sample website · local preview</div><button class="motion-control" id="motionControl"
     type="button" aria-pressed="false" aria-label="Pause decorative animations" hidden>Ⅱ Pause motion</button>
 </body>
-<script src= "web.js"></script>
+<script src="web.js"></script>
+
 </html>

@@ -35,11 +35,52 @@ async function reqFormCreation() {
     if (!promptReason.trim()
         || !promptNeeds.trim()
         || !meetType) {
-            
+
         alert("Please fill all required fields");
         return;
     }
 
+    resultArea.innerHTML = "<em>Connecting to your Google account and building your custom form...</em>";
 
+    try {
+        const WEB_APP_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL";
+
+        const payload = {
+            title: "CommonTime Scheduler",
+            mode: "GROUP",
+            timeframe: promptNeeds,
+            emails: [],
+            description: promptReason
+        };
+
+        const response = await fetch(WEB_APP_URL, {
+            method: "POST",
+            mode: "cors",
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+
+        if (result.status === "success") {
+            resultArea.innerHTML = `
+                <div style="padding: 12px; background: #e8f4ed; border-radius: 6px; color: #2e6930; margin-top: 10px;">
+                  <strong>Form Created in Your Google Drive!</strong><br>
+                  <a href="${result.formUrl}" target="_blank" rel="noopener">Open Live Form ↗</a> | 
+                  <a href="${result.editUrl}" target="_blank" rel="noopener">Edit Form in Drive ↗</a>
+                </div>
+            `;
+
+            const iframe = document.getElementById('availabilityForm');
+            iframe.src = result.formUrl + "?embedded=true";
+        } else {
+            resultArea.innerHTML = `<span style="color: red;">Error: ${result.message}</span>`;
+        }
+    } catch (err) {
+        resultArea.innerHTML = `<span style="color: red;">Connection failed. Make sure you authorized the script popup: ${err.toString()}</span>`;
+    }
+}
 
 }

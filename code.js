@@ -14,10 +14,6 @@ function showSidebar() {
 }
 
 
-/* experimental code: allow publisher to specify events for individuals
-    groups of people, update event each time a submission is posted or updated
-*/
-
 function setScheduleMode(mode) {
     PropertiesService.getDocumentProperties().setProperty('SCHEDULING_MODE', mode);
 }
@@ -25,8 +21,6 @@ function setScheduleMode(mode) {
 function getScheduleMode() {
     return PropertiesService.getDocumentProperties().getProperty('SCHEDULING_MODE');
 }
-
-/*-----------------END OF EXPERIMENTAL CODE-------------------*/
 
 
 // Handler to create submission trigger for current form from your sidebar/code

@@ -141,6 +141,7 @@ function handleGroupEvent(eventData) {
     const submissionKey = "ALL_GROUP_SUBMISSIONS";
     let submissions = JSON.parse(docProps.getProperty(submissionKey) || '{}');
 
+    // Save/Update current user's submission preference
     submissions[eventData.guestEmail] = {
         startTime: eventData.startTime,
         endTime: eventData.endTime,
@@ -155,40 +156,55 @@ function handleGroupEvent(eventData) {
         return;
     }
 
-    const allEmails = Object.keys(submissions).join(',');
+    const allEmails = Object.keys(submissions);
     const cal = CalendarApp.getDefaultCalendar();
     const groupEventIdKey = 'GROUP_MASTER_EVENT_ID';
     const masterEventId = docProps.getProperty(groupEventIdKey);
 
-    const options = {
-        description: eventData.description || "Scheduled with CommonTime",
-        sendInvites: true,
-        guests: allEmails
-    };
+    const meetingTitle = eventData.summary || "Group Meeting";
+    const meetingDescription = eventData.description || "Scheduled with CommonTime";
 
     if (masterEventId) {
         try {
             const masterEvent = cal.getEventById(masterEventId);
             if (masterEvent) {
-                masterEvent.setTime(new Date(bestFit.startTime),
-                    new Date(bestFit.endTime));
-                masterEvent.setTitle(eventData.sumary || "Group Meeting");
-                masterEvent.setGuests(allEmails);
-                Logger.log("Updated master group event.")
+                // Update timing, title, and description safely
+                masterEvent.setTime(new Date(bestFit.startTime), new Date(bestFit.endTime));
+                masterEvent.setTitle(meetingTitle);
+                masterEvent.setDescription(meetingDescription);
+
+                // Add any new submitters to the event guests list
+                allEmails.forEach(email => {
+                    try {
+                        masterEvent.addGuest(email);
+                    } catch (e) {
+                        Logger.log("Could not add guest: " + email);
+                    }
+                });
+
+                Logger.log("Updated master group event successfully.");
                 return;
             }
         } catch (r) {
-            Logger.log("No master event found, creating new.");
+            Logger.log("No master event found via ID, creating a new one.");
         }
     }
 
+    // If no master event exists yet, create it fresh
+    const options = {
+        description: meetingDescription,
+        sendInvites: true,
+        guests: allEmails.join(',') // Comma-separated string works on creation
+    };
+
     const newMasterEvent = cal.createEvent(
-        eventData.summary || "Group Meeting",
+        meetingTitle,
         new Date(bestFit.startTime),
         new Date(bestFit.endTime),
         options
     );
     docProps.setProperty(groupEventIdKey, newMasterEvent.getId());
+    Logger.log("Created new master group event.");
 }
 
 function calculateBestFit(subList) {

@@ -82,5 +82,3 @@ async function reqFormCreation() {
         resultArea.innerHTML = `<span style="color: red;">Connection failed. Make sure you authorized the script popup: ${err.toString()}</span>`;
     }
 }
-
-}

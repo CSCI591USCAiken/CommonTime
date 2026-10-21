@@ -16,7 +16,7 @@ $fullCommitMessage = "$JiraIssueKey $CommitMessage"
 git commit -m $fullCommitMessage
 
 Write-Host "3/3 Pushing to GitHub (triggers Jira update)..." -ForegroundColor Cyan
-git push origin KAN-13-prototypeA
+git push origin KAN-13-prototypeB
 
 Write-Host "Done! Apps Script, GitHub, and Jira have all been updated." -ForegroundColor Green
 

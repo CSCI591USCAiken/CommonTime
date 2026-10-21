@@ -1,3 +1,55 @@
+// Automatically adds the menu option to the Google Form editor
+function onOpen(e) {
+    FormApp.getUi()
+        .createAddonMenu()
+        .addItem('Open CommonTime', 'showSidebar')
+        .addToUi();
+}
+
+// Opens the custom HTML sidebar
+function showSidebar() {
+    const ui = HtmlService.createHtmlOutputFromFile('Sidebar')
+        .setTitle('CommonTime Scheduler');
+    FormApp.getUi().showSidebar(ui);
+}
+
+// Handler to create submission trigger for current form from your sidebar/code
+function toggleTriggerOn() {
+    const form = FormApp.getActiveForm();
+    removeExistingTriggers(form.getId());
+
+    ScriptApp.newTrigger('onFormSubmit')
+        .forForm(form)
+        .onFormSubmit()
+        .create();
+    
+    Logger.log("CommonTime enabled for form: " + form.getTitle());
+}
+
+function toggleTriggerOff() {
+    const form = FormApp.getActiveForm();
+    removeExistingTriggers(form.getId());
+    Logger.log("CommonTime disabled for form: " + form.getTitle());
+}
+
+function checkExistingTrigger(formId) {
+    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
+    return triggers.some(
+        (t) => t.getHandlerFunction() === 'onFormSubmit'
+            && t.getTriggerSourceId() === formId
+    );
+}
+
+function removeExistingTriggers(formId) {
+    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
+    triggers.forEach((trigger) => {
+        if (trigger.getHandlerFunction() === 'onFormSubmit'
+            && trigger.getTriggerSourceId() === formId) {
+                ScriptApp.deleteTrigger(trigger);
+        }
+    });
+}
+
 function onFormSubmit(e) {
     try {
         const respEmail = e.response.getRespondentEmail();

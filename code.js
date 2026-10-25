@@ -434,21 +434,15 @@ function applyTemplate(templateId) {
         form.setTitle('CommonTime Scheduler - Select a Slot');
         form.addTextItem().setTitle('Meeting Summary / Purpose').setRequired(true);
 
-        // Fetch publisher's open slots for the next 7 days
+        // Fetch publisher's open slots for the next 7 days and create a Multiple Choice item
         const openSlots = getPublisherOpenSlots();
         const choices = openSlots.map(slot => slot.label);
 
         if (choices.length > 0) {
-            // 1. Create the multiple choice question item first
-            const multipleChoiceItem = form.addMultipleChoiceItem();
-            multipleChoiceItem.setTitle('Select an available time slot');
-            
-            // 2. Call createChoice() on the item instance (or use setChoiceValues)
-            multipleChoiceItem.setChoices(
-                choices.map(c => multipleChoiceItem.createChoice(c))
-            );
-            
-            multipleChoiceItem.setRequired(true);
+            form.addMultipleChoiceItem()
+                .setTitle('Select an available time slot')
+                .setChoices(choices.map(c => form.createChoice(c)))
+                .setRequired(true);
         } else {
             form.addTextItem().setTitle('No automated slots found. Enter your preferred time:').setRequired(true);
         }

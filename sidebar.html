@@ -2,140 +2,25 @@
 <html>
 <head>
     <base target="_top">
-    <style>
-        :root {
-            --primary: #343452;
-            --accent: #d69b78;
-            --bg: #f9f8fa;
-            --border: #d8d3de;
-            --text-main: #343452;
-            --text-muted: #8e8798;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 16px;
-            box-sizing: border-box;
-        }
-
-        .container {
-            max-width: 100%;
-        }
-
-        .brand-header {
-            font-size: 11px;
-            letter-spacing: 1.5px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-
-        h2 {
-            font-family: Georgia, serif;
-            font-size: 22px;
-            margin-top: 0;
-            margin-bottom: 16px;
-            color: var(--primary);
-        }
-
-        .card {
-            background: #fffefa;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 14px;
-            margin-bottom: 14px;
-            box-shadow: 0 4px 12px rgba(38, 34, 56, 0.03);
-        }
-
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        p.desc {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 0;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-
-        .mode-group {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-
-        .mode-btn {
-            flex: 1;
-            padding: 8px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            border: 1px solid var(--border);
-            background: #fff;
-            color: var(--primary);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .mode-btn.active {
-            background: var(--primary);
-            color: #fff;
-            border-color: var(--primary);
-        }
-
-        .action-btn {
-            width: 100%;
-            padding: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 6px;
-        }
-
-        .btn-primary {
-            background: var(--accent);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            opacity: 0.9;
-        }
-
-        .btn-danger {
-            background: #f2dede;
-            color: #a94442;
-        }
-
-        .btn-danger:hover {
-            background: #ebcccc;
-        }
-
-        #statusMsg {
-            font-size: 12px;
-            margin-top: 10px;
-            padding: 8px;
-            border-radius: 4px;
-            display: none;
-        }
-
-        .success { background: #e8f4ed; color: #2e6930; display: block !important; }
-        .error { background: #fdf0f0; color: #b53e3e; display: block !important; }
-    </style>
+    <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
 
     <div class="container">
         <div class="brand-header">◷ Commontime Add-on</div>
         <h2>Scheduler Settings</h2>
+
+        <!-- Template Selection Card -->
+        <div class="card">
+            <label for="templateSelect">Form Template</label>
+            <p class="desc">Select a layout structure to auto-populate your questionnaire form elements.</p>
+            
+            <select id="templateSelect">
+                <option value="standard">Standard 30-min Meeting</option>
+                <option value="strict_availability">Strict Publisher Slots</option>
+            </select>
+            <button type="button" class="action-btn btn-primary" onclick="applyTemplateChoice()">Apply Template</button>
+        </div>
 
         <!-- Mode Selection Card -->
         <div class="card">
@@ -160,55 +45,7 @@
         <div id="statusMsg"></div>
     </div>
 
-    <script>
-        // Load initial state on startup
-        window.onload = function() {
-            google.script.run
-                .withSuccessHandler(updateModeUI)
-                .withFailureHandler(showError)
-                .getScheduleMode();
-        };
-
-        function selectMode(mode) {
-            google.script.run
-                .withSuccessHandler(() => {
-                    updateModeUI(mode);
-                    showStatus("Mode updated to " + mode, "success");
-                })
-                .withFailureHandler(showError)
-                .setScheduleMode(mode);
-        }
-
-        function updateModeUI(mode) {
-            const currentMode = mode || 'SINGLE'; // default fallback
-            document.getElementById('btnSingle').classList.toggle('active', currentMode === 'SINGLE');
-            document.getElementById('btnGroup').classList.toggle('active', currentMode === 'GROUP');
-        }
-
-        function turnOnSync() {
-            google.script.run
-                .withSuccessHandler(() => showStatus("CommonTime sync enabled successfully!", "success"))
-                .withFailureHandler(showError)
-                .toggleTriggerOn();
-        }
-
-        function turnOffSync() {
-            google.script.run
-                .withSuccessHandler(() => showStatus("CommonTime sync disabled.", "error"))
-                .withFailureHandler(showError)
-                .toggleTriggerOff();
-        }
-
-        function showStatus(text, type) {
-            const msg = document.getElementById('statusMsg');
-            msg.innerText = text;
-            msg.className = type;
-            setTimeout(() => { msg.style.display = 'none'; }, 4000);
-        }
-
-        function showError(err) {
-            showStatus("Error: " + err.message, "error");
-        }
+    <script src="sidebar.js">
     </script>
 </body>
 </html>

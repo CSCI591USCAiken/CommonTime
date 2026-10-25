@@ -1,184 +1,185 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <base target="_top">
     <style>
         :root {
-    --primary: #343452;
-    --accent: #d69b78;
-    --bg: #f9f8fa;
-    --border: #d8d3de;
-    --text-main: #343452;
-    --text-muted: #8e8798;
-}
+            --primary: #343452;
+            --accent: #d69b78;
+            --bg: #f9f8fa;
+            --border: #d8d3de;
+            --text-main: #343452;
+            --text-muted: #8e8798;
+        }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg);
-    color: var(--text-main);
-    margin: 0;
-    padding: 16px;
-    box-sizing: border-box;
-}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+        }
 
-.container {
-    max-width: 100%;
-}
+        .container {
+            max-width: 100%;
+        }
 
-.brand-header {
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    margin-bottom: 4px;
-}
+        .brand-header {
+            font-size: 11px;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
 
-h2 {
-    font-family: Georgia, serif;
-    font-size: 22px;
-    margin-top: 0;
-    margin-bottom: 16px;
-    color: var(--primary);
-}
+        h2 {
+            font-family: Georgia, serif;
+            font-size: 22px;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
 
-.card {
-    background: #fffefa;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    margin-bottom: 14px;
-    box-shadow: 0 4px 12px rgba(38, 34, 56, 0.03);
-}
+        .card {
+            background: #fffefa;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 12px rgba(38, 34, 56, 0.03);
+        }
 
-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 6px;
-}
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
 
-p.desc {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 0;
-    margin-bottom: 10px;
-    line-height: 1.4;
-}
+        p.desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 0;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
 
-.mode-group {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-}
+        select {
+            width: 100%;
+            padding: 10px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #fff;
+            color: var(--primary);
+            margin-bottom: 8px;
+            box-sizing: border-box;
+            cursor: pointer;
+        }
 
-.mode-btn {
-    flex: 1;
-    padding: 8px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 1px solid var(--border);
-    background: #fff;
-    color: var(--primary);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
+        .mode-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
 
-.mode-btn.active {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary);
-}
+        .mode-btn {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--primary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
 
-select {
-    width: 100%;
-    padding: 10px;
-    font-size: 13px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: #fff;
-    color: var(--primary);
-    margin-bottom: 8px;
-    box-sizing: border-box;
-    cursor: pointer;
-}
+        .mode-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
 
-.action-btn {
-    width: 100%;
-    padding: 10px;
-    font-size: 13px;
-    font-weight: 600;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-top: 6px;
-}
+        .action-btn {
+            width: 100%;
+            padding: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 6px;
+        }
 
-.btn-primary {
-    background: var(--accent);
-    color: white;
-}
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
 
-.btn-primary:hover {
-    opacity: 0.9;
-}
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
 
-.btn-danger {
-    background: #f2dede;
-    color: #a94442;
-}
+        .btn-danger {
+            background: #f2dede;
+            color: #a94442;
+        }
 
-.btn-danger:hover {
-    background: #ebcccc;
-}
+        .btn-danger:hover {
+            background: #ebcccc;
+        }
 
-#statusMsg {
-    font-size: 12px;
-    margin-top: 10px;
-    padding: 8px;
-    border-radius: 4px;
-    display: none;
-}
+        #statusMsg {
+            font-size: 12px;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+        }
 
-.success {
-    background: #e8f4ed;
-    color: #2e6930;
-    display: block !important;
-}
-
-.error {
-    background: #fdf0f0;
-    color: #b53e3e;
-    display: block !important;
-}
+        .success { background: #e8f4ed; color: #2e6930; display: block !important; }
+        .error { background: #fdf0f0; color: #b53e3e; display: block !important; }
     </style>
 </head>
-
 <body>
 
     <div class="container">
-        <div class="brand-header">◷ Commontime Add-on</div>
+        <div class="brand-header">◷ CommonTime Add-on</div>
         <h2>Scheduler Settings</h2>
 
         <!-- Template Selection Card -->
         <div class="card">
             <label for="templateSelect">Form Template</label>
             <p class="desc">Select a layout structure to auto-populate your questionnaire form elements.</p>
-
+            
             <select id="templateSelect">
                 <option value="standard">Standard 30-min Meeting</option>
-                <option value="strict_availability">Strict Publisher Slots</option>
+                <option value="strict_availability">Strict Publisher Slots (Multi-select)</option>
             </select>
             <button type="button" class="action-btn btn-primary" onclick="applyTemplateChoice()">Apply Template</button>
+        </div>
+
+        <!-- Cutoff Window Selection Card -->
+        <div class="card">
+            <label for="cutoffSelect">Availability Window</label>
+            <p class="desc">Choose how far into the future respondents can view and select available calendar slots.</p>
+            
+            <select id="cutoffSelect">
+                <option value="7">Next 7 Days (1 Week)</option>
+                <option value="14" selected>Next 14 Days (2 Weeks)</option>
+                <option value="30">Next 30 Days (1 Month)</option>
+            </select>
+            <button type="button" class="action-btn btn-primary" onclick="applyCutoffChoice()">Save Window</button>
         </div>
 
         <!-- Mode Selection Card -->
         <div class="card">
             <label>Scheduling Mode</label>
-            <p class="desc"><strong>Single:</strong> Creates a separate calendar event for each
-                submission.<br><strong>Group:</strong> Finds the best overlapping time window for all participants.</p>
-
+            <p class="desc"><strong>Single:</strong> Creates a separate calendar event for each submission.<br><strong>Group:</strong> Finds the best overlapping time window for all participants.</p>
+            
             <div class="mode-group">
                 <button type="button" class="mode-btn" id="btnSingle" onclick="selectMode('SINGLE')">Single</button>
                 <button type="button" class="mode-btn" id="btnGroup" onclick="selectMode('GROUP')">Group</button>
@@ -188,9 +189,8 @@ select {
         <!-- Sync Control Card -->
         <div class="card">
             <label>Calendar Sync Status</label>
-            <p class="desc">Enable automated background parsing with Gemini and calendar event creation upon form
-                submission.</p>
-
+            <p class="desc">Enable automated background parsing with Gemini and calendar event creation upon form submission.</p>
+            
             <button type="button" class="action-btn btn-primary" onclick="turnOnSync()">Enable CommonTime Sync</button>
             <button type="button" class="action-btn btn-danger" onclick="turnOffSync()">Disable Sync</button>
         </div>
@@ -200,20 +200,26 @@ select {
 
     <script>
         /**
- * Executes automatically when the sidebar HTML window loads.
- * Fetches the currently saved scheduling mode from backend properties and initializes the UI.
- */
+         * Loads initial settings state from Apps Script properties on window load.
+         */
         window.onload = function () {
+            // Load saved scheduling mode
             google.script.run
                 .withSuccessHandler(updateModeUI)
                 .withFailureHandler(showError)
                 .getScheduleMode();
+
+            // Load saved cutoff window setting
+            google.script.run
+                .withSuccessHandler((days) => {
+                    if (days) document.getElementById('cutoffSelect').value = days;
+                })
+                .withFailureHandler(showError)
+                .getCutoffDays();
         };
 
         /**
-         * Updates the backend scheduling mode ('SINGLE' or 'GROUP') and reflects the change in the UI.
-         * 
-         * @param {string} mode - The scheduling mode selected by the user.
+         * Updates the backend scheduling mode ('SINGLE' or 'GROUP').
          */
         function selectMode(mode) {
             google.script.run
@@ -226,19 +232,16 @@ select {
         }
 
         /**
-         * Updates the visual active state of the Single vs. Group scheduling mode buttons.
-         * 
-         * @param {string} mode - The active scheduling mode ('SINGLE' or 'GROUP').
+         * Updates the active UI button highlights for scheduling mode.
          */
         function updateModeUI(mode) {
-            const currentMode = mode || 'SINGLE'; // Default fallback if no property is set
+            const currentMode = mode || 'SINGLE';
             document.getElementById('btnSingle').classList.toggle('active', currentMode === 'SINGLE');
             document.getElementById('btnGroup').classList.toggle('active', currentMode === 'GROUP');
         }
 
         /**
-         * Reads the selected template choice from the dropdown menu and commands the backend
-         * to apply the chosen template layout to the active Google Form.
+         * Applies the selected template layout to the Google Form.
          */
         function applyTemplateChoice() {
             const templateId = document.getElementById('templateSelect').value;
@@ -249,7 +252,18 @@ select {
         }
 
         /**
-         * Enables automated background form submission sync and Gemini calendar event creation triggers.
+         * Saves the availability cutoff window period in document properties.
+         */
+        function applyCutoffChoice() {
+            const days = document.getElementById('cutoffSelect').value;
+            google.script.run
+                .withSuccessHandler((msg) => showStatus(msg, "success"))
+                .withFailureHandler(showError)
+                .setCutoffDays(days);
+        }
+
+        /**
+         * Enables submission triggers for automated background processing.
          */
         function turnOnSync() {
             google.script.run
@@ -259,7 +273,7 @@ select {
         }
 
         /**
-         * Disables automated background sync by deleting active form submission triggers.
+         * Disables submission triggers.
          */
         function turnOffSync() {
             google.script.run
@@ -269,30 +283,23 @@ select {
         }
 
         /**
-         * Displays an ephemeral status message banner at the bottom of the sidebar.
-         * Automatically hides the message box after 4 seconds.
-         * 
-         * @param {string} text - The message content to display.
-         * @param {string} type - The CSS class defining message style ('success' or 'error').
+         * Displays status message banner with automatic 4-second timeout.
          */
         function showStatus(text, type) {
             const msg = document.getElementById('statusMsg');
             msg.innerText = text;
             msg.className = type;
-            setTimeout(() => {
-                msg.style.display = 'none';
+            setTimeout(() => { 
+                msg.style.display = 'none'; 
             }, 4000);
         }
 
         /**
-         * Error failure handler callback. Automatically passes caught errors to the status banner.
-         * 
-         * @param {Error} err - The error object returned from backend script execution.
+         * Global failure handler for google.script.run execution errors.
          */
         function showError(err) {
             showStatus("Error: " + err.message, "error");
         }
     </script>
 </body>
-
 </html>

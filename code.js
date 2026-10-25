@@ -431,18 +431,21 @@ function applyTemplate(templateId) {
         form.addTextItem().setTitle('Meeting Summary / Purpose').setRequired(true);
         form.addParagraphTextItem().setTitle('Proposed Date and Time (e.g., Tomorrow at 2 PM)').setRequired(true);
     } else if (templateId === 'strict_availability') {
-        form.setTitle('CommonTime Scheduler - Select a Slot');
+        form.setTitle('CommonTime Scheduler - Select Available Slots');
         form.addTextItem().setTitle('Meeting Summary / Purpose').setRequired(true);
 
-        // Fetch publisher's open slots for the next 7 days and create a Multiple Choice item
+        // Fetch publisher's open slots and extract labels
         const openSlots = getPublisherOpenSlots();
         const choices = openSlots.map(slot => slot.label);
 
         if (choices.length > 0) {
-            form.addMultipleChoiceItem()
-                .setTitle('Select an available time slot')
-                .setChoices(choices.map(c => form.createChoice(c)))
-                .setRequired(true);
+            const checkboxItem = form.addCheckboxItem();
+            checkboxItem.setTitle('Select all time slots that work for you');
+            
+            // Pass the string array directly to avoid createChoice errors
+            checkboxItem.setChoiceValues(choices);
+            
+            checkboxItem.setRequired(true);
         } else {
             form.addTextItem().setTitle('No automated slots found. Enter your preferred time:').setRequired(true);
         }

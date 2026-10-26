@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <base target="_top">
     <style>
@@ -140,10 +141,20 @@
             display: none;
         }
 
-        .success { background: #e8f4ed; color: #2e6930; display: block !important; }
-        .error { background: #fdf0f0; color: #b53e3e; display: block !important; }
+        .success {
+            background: #e8f4ed;
+            color: #2e6930;
+            display: block !important;
+        }
+
+        .error {
+            background: #fdf0f0;
+            color: #b53e3e;
+            display: block !important;
+        }
     </style>
 </head>
+
 <body>
 
     <div class="container">
@@ -154,7 +165,7 @@
         <div class="card">
             <label for="templateSelect">Form Template</label>
             <p class="desc">Select a layout structure to auto-populate your questionnaire form elements.</p>
-            
+
             <select id="templateSelect">
                 <option value="standard">Standard 30-min Meeting</option>
                 <option value="strict_availability">Strict Publisher Slots (Multi-select)</option>
@@ -166,7 +177,7 @@
         <div class="card">
             <label for="cutoffSelect">Availability Window</label>
             <p class="desc">Choose how far into the future respondents can view and select available calendar slots.</p>
-            
+
             <select id="cutoffSelect">
                 <option value="7">Next 7 Days (1 Week)</option>
                 <option value="14" selected>Next 14 Days (2 Weeks)</option>
@@ -178,8 +189,9 @@
         <!-- Mode Selection Card -->
         <div class="card">
             <label>Scheduling Mode</label>
-            <p class="desc"><strong>Single:</strong> Creates a separate calendar event for each submission.<br><strong>Group:</strong> Finds the best overlapping time window for all participants.</p>
-            
+            <p class="desc"><strong>Single:</strong> Creates a separate calendar event for each
+                submission.<br><strong>Group:</strong> Finds the best overlapping time window for all participants.</p>
+
             <div class="mode-group">
                 <button type="button" class="mode-btn" id="btnSingle" onclick="selectMode('SINGLE')">Single</button>
                 <button type="button" class="mode-btn" id="btnGroup" onclick="selectMode('GROUP')">Group</button>
@@ -189,8 +201,9 @@
         <!-- Sync Control Card -->
         <div class="card">
             <label>Calendar Sync Status</label>
-            <p class="desc">Enable automated background parsing with Gemini and calendar event creation upon form submission.</p>
-            
+            <p class="desc">Enable automated background parsing with Gemini and calendar event creation upon form
+                submission.</p>
+
             <button type="button" class="action-btn btn-primary" onclick="turnOnSync()">Enable CommonTime Sync</button>
             <button type="button" class="action-btn btn-danger" onclick="turnOffSync()">Disable Sync</button>
         </div>
@@ -246,10 +259,15 @@
         }
 
         function turnOnSync() {
+            // Extract the Form ID dynamically from the editor URL
+            const urlParts = window.parent.location.href.split('/');
+            const formIdIndex = urlParts.indexOf('d') + 1;
+            const formId = (formIdIndex > 0 && urlParts[formIdIndex]) ? urlParts[formIdIndex] : null;
+
             google.script.run
                 .withSuccessHandler(() => showStatus("CommonTime sync enabled successfully!", "success"))
                 .withFailureHandler(showError)
-                .toggleTriggerOn();
+                .toggleTriggerOn(formId);
         }
 
         function turnOffSync() {
@@ -263,8 +281,8 @@
             const msg = document.getElementById('statusMsg');
             msg.innerText = text;
             msg.className = type;
-            setTimeout(() => { 
-                msg.style.display = 'none'; 
+            setTimeout(() => {
+                msg.style.display = 'none';
             }, 4000);
         }
 
@@ -273,4 +291,5 @@
         }
     </script>
 </body>
+
 </html>

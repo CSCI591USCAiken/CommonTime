@@ -51,15 +51,21 @@ function getScheduleMode() {
 /**
  * Enables form submission tracking by creating an active form submit trigger.
  */
-function toggleTriggerOn() {
+function toggleTriggerOn(formId) {
     let form;
     try {
-        form = FormApp.getActiveForm();
+        // If a formId was passed from the sidebar, use it
+        if (formId) {
+            form = FormApp.openById(formId);
+        } else {
+            form = FormApp.getActiveForm();
+        }
     } catch (e) {
+        Logger.log("Error opening form: " + e.toString());
     }
     
     if (!form) {
-        throw new Error("Could not detect active form. Please open the Apps Script editor from the Form's menu.");
+        throw new Error("Could not detect active form. Please ensure you are running this inside a Google Form editor.");
     }
 
     removeExistingTriggers(form.getId());

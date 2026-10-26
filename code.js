@@ -402,7 +402,8 @@ function sendConfirmationEmail(email, summary, startTime, endTime) {
     if (!email) return;
     try {
         const subject = "Meeting Confirmed: " + summary;
-        const body = `Hello,\n\nYour meeting "${summary}" has been successfully scheduled and added to the publisher's calendar.\n\n`
+        // Corrected code:
+const body = `Hello,\n\nYour meeting "${summary}" has been successfully scheduled and added to the publisher's calendar.\n\n`
                    + `📅 Time: ${new Date(startTime).toLocaleString()} - ${new Date(endTime).toLocaleString()}\n\n`
                    + `A calendar invitation has also been sent to your inbox.\n\nThank you!`;
         MailApp.sendEmail(email, subject, body);

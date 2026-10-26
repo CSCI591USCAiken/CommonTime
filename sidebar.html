@@ -262,8 +262,8 @@
 
         function turnOnSync() {
             google.script.run
-                .withSuccessHandler(() => {
-                    showStatus("CommonTime sync enabled successfully!", "success");
+                .withSuccessHandler((message) => {
+                    showStatus(message, "success");
                 })
                 .withFailureHandler(showError)
                 .toggleTriggerOn();

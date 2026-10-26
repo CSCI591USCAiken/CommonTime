@@ -15,7 +15,6 @@ function onOpen(e) {
         .createAddonMenu()
         .addItem('Open CommonTime', 'showSidebar')
         .addToUi();
-    toggleTriggerOn();
 }
 
 /**

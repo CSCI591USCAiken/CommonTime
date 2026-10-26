@@ -291,11 +291,12 @@ function geminiParse(input) {
 }
 
 function sendConfirmationEmail(email, summary, startTime, endTime) {
-    if (!email) return;
-    const subject = "Meeting Confirmed: " + summary;
-    const body = `Hello,\n\nYour meeting "${summary}" has been scheduled in the CommonTime calendar.\n\nTime: ${new Date(startTime).toLocaleString()} - ${new Date(endTime).toLocaleString()}\n\nA calendar invitation has also been sent.\n\nThank you!`;
-    MailApp.sendEmail({ to: email, subject: subject, body: body });
-    Logger.log("Confirmation email successfully sent to " + email);
+    if (!email) return;
+    const subject = "Meeting Confirmed: " + summary;
+const body = `Hello,\n\nYour meeting "${summary}" has been scheduled in the CommonTime calendar.\n\nTime: ${new Date(startTime).toLocaleString()}
+${new Date(endTime).toLocaleString()}\n\nA calendar invitation has also been sent.\n\nThank you!`;
+    MailApp.sendEmail({ to: email, subject: subject, body: body });
+    Logger.log("Confirmation email successfully sent to " + email);
 }
 
 function getAvailableTemplates() {

@@ -231,8 +231,17 @@ function handleGroupEvent(eventData) {
     const groupEventIdKey = 'GROUP_MASTER_EVENT_ID';
     const masterEventId = docProps.getProperty(groupEventIdKey);
 
-    const meetingTitle = eventData.summary || "Group Meeting";
-    const meetingDescription = eventData.description || "Scheduled with CommonTime";
+    // AGGREGATE ALL SUBMISSIONS FOR TITLES & DESCRIPTIONS
+    const allSubmissions = Object.values(submissions);
+    
+    // Create a combined description listing each member's input
+    let aggregatedDescription = "Scheduled with CommonTime\n\nSubmitted Details by Participant:\n" + 
+        allSubmissions.map(s => `- ${s.guestEmail}: "${s.summary || 'No summary'}" — ${s.description || 'No description'}`).join('\n');
+
+    // Pick a sensible title (e.g., use the first person's summary or a default group title)
+    const firstSummary = allSubmissions.find(s => s.summary)?.summary;
+    const meetingTitle = firstSummary ? `${firstSummary} (Group)` : "Group Meeting";
+    const meetingDescription = aggregatedDescription;
 
     if (masterEventId) {
         try {

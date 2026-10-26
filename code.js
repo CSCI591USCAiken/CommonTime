@@ -53,7 +53,16 @@ function getScheduleMode() {
  * Enables form submission tracking by creating an active form submit trigger.
  */
 function toggleTriggerOn() {
-    const form = FormApp.getActiveForm();
+    let form;
+    try {
+        form = FormApp.getActiveForm();
+    } catch (e) {
+    }
+    
+    if (!form) {
+        throw new Error("Could not detect active form. Please open the Apps Script editor from the Form's menu.");
+    }
+
     removeExistingTriggers(form.getId());
 
     ScriptApp.newTrigger('onFormSubmit')
@@ -511,4 +520,16 @@ function getPublisherOpenSlots() {
         }
     }
     return slots;
+}
+
+// ==========================================
+// CUTOFF WINDOW PROPERTY MANAGEMENT
+// ==========================================
+function setCutoffDays(days) {
+    PropertiesService.getDocumentProperties().setProperty('CUTOFF_DAYS', days);
+    return "Availability window saved successfully!";
+}
+
+function getCutoffDays() {
+    return PropertiesService.getDocumentProperties().getProperty('CUTOFF_DAYS') || '14';
 }

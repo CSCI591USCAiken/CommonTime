@@ -199,17 +199,12 @@
     </div>
 
     <script>
-        /**
-         * Loads initial settings state from Apps Script properties on window load.
-         */
         window.onload = function () {
-            // Load saved scheduling mode
             google.script.run
                 .withSuccessHandler(updateModeUI)
                 .withFailureHandler(showError)
                 .getScheduleMode();
 
-            // Load saved cutoff window setting
             google.script.run
                 .withSuccessHandler((days) => {
                     if (days) document.getElementById('cutoffSelect').value = days;
@@ -218,9 +213,6 @@
                 .getCutoffDays();
         };
 
-        /**
-         * Updates the backend scheduling mode ('SINGLE' or 'GROUP').
-         */
         function selectMode(mode) {
             google.script.run
                 .withSuccessHandler(() => {
@@ -231,18 +223,12 @@
                 .setScheduleMode(mode);
         }
 
-        /**
-         * Updates the active UI button highlights for scheduling mode.
-         */
         function updateModeUI(mode) {
             const currentMode = mode || 'SINGLE';
             document.getElementById('btnSingle').classList.toggle('active', currentMode === 'SINGLE');
             document.getElementById('btnGroup').classList.toggle('active', currentMode === 'GROUP');
         }
 
-        /**
-         * Applies the selected template layout to the Google Form.
-         */
         function applyTemplateChoice() {
             const templateId = document.getElementById('templateSelect').value;
             google.script.run
@@ -251,9 +237,6 @@
                 .applyTemplate(templateId);
         }
 
-        /**
-         * Saves the availability cutoff window period in document properties.
-         */
         function applyCutoffChoice() {
             const days = document.getElementById('cutoffSelect').value;
             google.script.run
@@ -262,9 +245,6 @@
                 .setCutoffDays(days);
         }
 
-        /**
-         * Enables submission triggers for automated background processing.
-         */
         function turnOnSync() {
             google.script.run
                 .withSuccessHandler(() => showStatus("CommonTime sync enabled successfully!", "success"))
@@ -272,9 +252,6 @@
                 .toggleTriggerOn();
         }
 
-        /**
-         * Disables submission triggers.
-         */
         function turnOffSync() {
             google.script.run
                 .withSuccessHandler(() => showStatus("CommonTime sync disabled.", "error"))
@@ -282,9 +259,6 @@
                 .toggleTriggerOff();
         }
 
-        /**
-         * Displays status message banner with automatic 4-second timeout.
-         */
         function showStatus(text, type) {
             const msg = document.getElementById('statusMsg');
             msg.innerText = text;
@@ -294,9 +268,6 @@
             }, 4000);
         }
 
-        /**
-         * Global failure handler for google.script.run execution errors.
-         */
         function showError(err) {
             showStatus("Error: " + err.message, "error");
         }

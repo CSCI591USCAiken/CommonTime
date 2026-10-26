@@ -63,7 +63,7 @@ function toggleTriggerOn(formId) {
     } catch (e) {
         Logger.log("Error opening form: " + e.toString());
     }
-    
+
     if (!form) {
         throw new Error("Could not detect active form. Please ensure you are running this inside a Google Form editor.");
     }
@@ -194,7 +194,7 @@ function handleIndEvent(eventData) {
                 existingEvent.setTitle(eventData.summary || "Meeting");
                 existingEvent.setDescription(options.description);
                 Logger.log("Updated existing event for: " + eventData.guestEmail);
-                
+
                 // Email respondent for accepted/updated timeslot
                 sendConfirmationEmail(eventData.guestEmail, eventData.summary || "Meeting", startTime, endTime);
                 return;
@@ -248,9 +248,9 @@ function handleGroupEvent(eventData) {
 
     // AGGREGATE ALL SUBMISSIONS FOR TITLES & DESCRIPTIONS
     const allSubmissions = Object.values(submissions);
-    
+
     // Create a combined description listing each member's input
-    let aggregatedDescription = "Scheduled with CommonTime\n\nSubmitted Details by Participant:\n" + 
+    let aggregatedDescription = "Scheduled with CommonTime\n\nSubmitted Details by Participant:\n" +
         allSubmissions.map(s => `- ${s.guestEmail}: "${s.summary || 'No summary'}" — ${s.description || 'No description'}`).join('\n');
 
     // Pick a sensible title (e.g., use the first person's summary or a default group title)
@@ -275,7 +275,7 @@ function handleGroupEvent(eventData) {
                 });
 
                 Logger.log("Updated master group event successfully.");
-                
+
                 // Email confirmation to the latest submitter
                 sendConfirmationEmail(eventData.guestEmail, meetingTitle, bestFit.startTime, bestFit.endTime);
                 return;
@@ -418,9 +418,9 @@ function sendConfirmationEmail(email, summary, startTime, endTime) {
     try {
         const subject = "Meeting Confirmed: " + summary;
         // Corrected code:
-const body = `Hello,\n\nYour meeting "${summary}" has been successfully scheduled and added to the publisher's calendar.\n\n`
-                   + `📅 Time: ${new Date(startTime).toLocaleString()} - ${new Date(endTime).toLocaleString()}\n\n`
-                   + `A calendar invitation has also been sent to your inbox.\n\nThank you!`;
+        const body = `Hello,\n\nYour meeting "${summary}" has been successfully scheduled and added to the publisher's calendar.\n\n`
+            + `📅 Time: ${new Date(startTime).toLocaleString()} - ${new Date(endTime).toLocaleString()}\n\n`
+            + `A calendar invitation has also been sent to your inbox.\n\nThank you!`;
         MailApp.sendEmail(email, subject, body);
         Logger.log("Confirmation email successfully sent to " + email);
     } catch (e) {
@@ -466,10 +466,10 @@ function applyTemplate(templateId) {
         if (choices.length > 0) {
             const checkboxItem = form.addCheckboxItem();
             checkboxItem.setTitle('Select all time slots that work for you');
-            
+
             // Pass the string array directly to avoid createChoice errors
             checkboxItem.setChoiceValues(choices);
-            
+
             checkboxItem.setRequired(true);
         } else {
             form.addTextItem().setTitle('No automated slots found. Enter your preferred time:').setRequired(true);

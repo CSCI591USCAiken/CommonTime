@@ -5,6 +5,24 @@
  */
 
 // ==========================================
+// 3. FORM SUBMISSION TRIGGER MANAGEMENT
+// ==========================================
+/**
+ * Enables form submission tracking by creating an active form submit trigger.
+ */
+function toggleTriggerOn() {
+    const form = FormApp.getActiveForm();
+    removeExistingTriggers(form.getId());
+
+    ScriptApp.newTrigger('onFormSubmit')
+        .forForm(form)
+        .onFormSubmit()
+        .create();
+
+    Logger.log("CommonTime enabled for form: " + form.getTitle());
+}
+
+// ==========================================
 // 1. UI & MENU INITIALIZATION
 // ==========================================
 /**
@@ -42,25 +60,6 @@ function setScheduleMode(mode) {
  */
 function getScheduleMode() {
     return PropertiesService.getDocumentProperties().getProperty('SCHEDULING_MODE');
-}
-
-
-// ==========================================
-// 3. FORM SUBMISSION TRIGGER MANAGEMENT
-// ==========================================
-/**
- * Enables form submission tracking by creating an active form submit trigger.
- */
-function toggleTriggerOn() {
-    const form = FormApp.getActiveForm();
-    removeExistingTriggers(form.getId());
-
-    ScriptApp.newTrigger('onFormSubmit')
-        .forForm(form)
-        .onFormSubmit()
-        .create();
-
-    Logger.log("CommonTime enabled for form: " + form.getTitle());
 }
 
 /**

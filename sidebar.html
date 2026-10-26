@@ -141,16 +141,17 @@
             display: none;
         }
 
+
         .success {
             background: #e8f4ed;
             color: #2e6930;
-            display: block !important;
+            display: block;
         }
 
         .error {
             background: #fdf0f0;
             color: #b53e3e;
-            display: block !important;
+            display: block;
         }
     </style>
 </head>
@@ -258,24 +259,27 @@
                 .setCutoffDays(days);
         }
 
-        function turnOnSync() {
-            // Extract the Form ID dynamically from the editor URL
-            const urlParts = window.parent.location.href.split('/');
-            const formIdIndex = urlParts.indexOf('d') + 1;
-            const formId = (formIdIndex > 0 && urlParts[formIdIndex]) ? urlParts[formIdIndex] : null;
 
+        function turnOnSync() {
             google.script.run
-                .withSuccessHandler(() => showStatus("CommonTime sync enabled successfully!", "success"))
+                .withSuccessHandler(() => {
+                    showStatus("CommonTime sync enabled successfully!", "success");
+                })
                 .withFailureHandler(showError)
-                .toggleTriggerOn(formId);
+                .toggleTriggerOn();
         }
+
+
 
         function turnOffSync() {
             google.script.run
-                .withSuccessHandler(() => showStatus("CommonTime sync disabled.", "error"))
+                .withSuccessHandler(() => {
+                    showStatus("CommonTime sync disabled.", "success");
+                })
                 .withFailureHandler(showError)
                 .toggleTriggerOff();
         }
+
 
         function showStatus(text, type) {
             const msg = document.getElementById('statusMsg');

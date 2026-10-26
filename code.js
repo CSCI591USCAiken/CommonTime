@@ -28,21 +28,21 @@ function getScheduleMode() {
 function toggleTriggerOn(formId) {
     let form;
     try {
-        if (formId) {
-            form = FormApp.openById(formId);
-        } else {
-            form = FormApp.getActiveForm();
-        }
+        form = formId ? FormApp.openById(formId) : FormApp.getActiveForm();
     } catch (e) {
         Logger.log("Error opening form: " + e.toString());
     }
-    
+
     if (!form) {
-        throw new Error("Could not detect active form. Please open this from the Form editor.");
+        throw new Error("Could not detect the form. Open this from the Form editor and try again.");
+    }
+
+    const publisherEmail = Session.getEffectiveUser().getEmail();
+    if (publisherEmail) {
+        PropertiesService.getDocumentProperties().setProperty('PUBLISHER_EMAIL', publisherEmail);
     }
 
     removeExistingTriggers(form.getId());
-
     ScriptApp.newTrigger('onFormSubmit')
         .forForm(form)
         .onFormSubmit()
@@ -58,9 +58,10 @@ function toggleTriggerOff() {
 }
 
 function removeExistingTriggers(formId) {
-    const triggers = ScriptApp.getUserTriggers(FormApp.getActiveForm());
-    triggers.forEach((trigger) => {
-        if (trigger.getHandlerFunction() === 'onFormSubmit' && trigger.getTriggerSourceId() === formId) {
+    // Project triggers works even if the form is not the currently active form.
+    ScriptApp.getProjectTriggers().forEach(function(trigger) {
+        if (trigger.getHandlerFunction() === 'onFormSubmit' &&
+            trigger.getTriggerSourceId() === formId) {
             ScriptApp.deleteTrigger(trigger);
         }
     });
@@ -69,87 +70,113 @@ function removeExistingTriggers(formId) {
 function onFormSubmit(e) {
     try {
         if (!e || !e.response) {
-            Logger.log("Trigger fired without event object data.");
-            return;
+            throw new Error("Form-submit trigger did not include a response.");
         }
 
-        const respEmail = e.response.getRespondentEmail();
+        const respEmail = (e.response.getRespondentEmail() || '').trim();
         const itemResp = e.response.getItemResponses();
-        let userTxtResp = "";
+        const userTxtResp = itemResp.map(function(itemResponse) {
+            return itemResponse.getItem().getTitle() + ": " + itemResponse.getResponse();
+        }).join("\\n");
 
-        for (let i = 0; i < itemResp.length; i++) {
-            userTxtResp += itemResp[i].getItem().getTitle() + ": " + itemResp[i].getResponse() + "\n";
-        }
-
-        Logger.log("Parsed Form Responses:\n" + userTxtResp);
+        Logger.log("Parsed Form Responses:\\n" + userTxtResp);
 
         const parsedData = geminiParse(userTxtResp);
         if (!parsedData || !parsedData.startTime || !parsedData.endTime) {
-            Logger.log("Gemini failed to parse valid start/end times.");
-            return;
+            throw new Error("Gemini did not return valid start and end times.");
         }
 
-        const cal = CalendarApp.getDefaultCalendar();
         const start = new Date(parsedData.startTime);
         const end = new Date(parsedData.endTime);
+        if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+            throw new Error("Parsed meeting dates are invalid; end time must be after start time.");
+        }
 
+        const props = PropertiesService.getDocumentProperties();
         parsedData.guestEmail = respEmail;
-        const mode = getScheduleMode();
-        
-        if (mode === 'SINGLE') {
+        parsedData.publisherEmail = (props.getProperty('PUBLISHER_EMAIL') ||
+            Session.getEffectiveUser().getEmail() || '').trim();
+
+        if (getScheduleMode() === 'SINGLE') {
             handleIndEvent(parsedData);
         } else {
             handleGroupEvent(parsedData);
         }
-    } catch (f) {
-        Logger.log("CRITICAL ERROR in onFormSubmit: " + f.toString());
+    } catch (err) {
+        Logger.log("ERROR processing form submission: " + (err.stack || err.toString()));
+        throw err;
     }
+}
+
+function getEventGuestEmails(eventData) {
+    return Array.from(new Set([eventData.publisherEmail, eventData.guestEmail]
+        .filter(Boolean)
+        .map(function(email) { return email.trim().toLowerCase(); })));
+}
+
+function addGuestsToEvent(calendarEvent, emails) {
+    const existing = (calendarEvent.getGuestList() || []).map(function(guest) {
+        return guest.getEmail().toLowerCase();
+    });
+    emails.forEach(function(email) {
+        if (existing.indexOf(email.toLowerCase()) === -1) {
+            calendarEvent.addGuest(email);
+        }
+    });
+}
+
+function notifyEventRecipients(emails, summary, startTime, endTime) {
+    emails.forEach(function(email) {
+        try {
+            sendConfirmationEmail(email, summary, startTime, endTime);
+        } catch (err) {
+            Logger.log("Failed to send confirmation to " + email + ": " + err.toString());
+        }
+    });
 }
 
 function handleIndEvent(eventData) {
     const docProps = PropertiesService.getDocumentProperties();
     const emailKey = 'EVENT_ID_' + (eventData.guestEmail ? eventData.guestEmail.toLowerCase() : 'anonymous');
     const existingEventId = docProps.getProperty(emailKey);
-
     const cal = CalendarApp.getDefaultCalendar();
     const startTime = new Date(eventData.startTime);
     const endTime = new Date(eventData.endTime);
+    const summary = eventData.summary || "Meeting";
+    const description = eventData.description || "Scheduled with CommonTime";
+    const guests = getEventGuestEmails(eventData);
 
-    const options = {
-        description: eventData.description || "Scheduled with CommonTime",
-        sendInvites: true
-    };
-    if (eventData.guestEmail) options.guests = eventData.guestEmail;
-
+    let calendarEvent = null;
     if (existingEventId) {
         try {
-            const existingEvent = cal.getEventById(existingEventId);
-            if (existingEvent) {
-                existingEvent.setTime(startTime, endTime);
-                existingEvent.setTitle(eventData.summary || "Meeting");
-                existingEvent.setDescription(options.description);
-                Logger.log("Updated existing event for: " + eventData.guestEmail);
-                sendConfirmationEmail(eventData.guestEmail, eventData.summary || "Meeting", startTime, endTime);
-                return;
-            }
+            calendarEvent = cal.getEventById(existingEventId);
         } catch (err) {
-            Logger.log("Could not find existing event ID, creating new one.");
+            Logger.log("Could not retrieve existing event; creating a replacement.");
         }
     }
 
-    const newEvent = cal.createEvent(eventData.summary || "Meeting", startTime, endTime, options);
-    docProps.setProperty(emailKey, newEvent.getId());
-    Logger.log("Created new event for " + eventData.guestEmail);
+    if (calendarEvent) {
+        calendarEvent.setTime(startTime, endTime);
+        calendarEvent.setTitle(summary);
+        calendarEvent.setDescription(description);
+        addGuestsToEvent(calendarEvent, guests);
+    } else {
+        const options = { description: description, sendInvites: true };
+        if (guests.length) options.guests = guests.join(',');
+        calendarEvent = cal.createEvent(summary, startTime, endTime, options);
+        docProps.setProperty(emailKey, calendarEvent.getId());
+    }
 
-    sendConfirmationEmail(eventData.guestEmail, eventData.summary || "Meeting", startTime, endTime);
+    Logger.log("Created/updated individual event: " + summary);
+    notifyEventRecipients(guests, summary, startTime, endTime);
 }
 
 function handleGroupEvent(eventData) {
     const docProps = PropertiesService.getDocumentProperties();
     const submissionKey = "ALL_GROUP_SUBMISSIONS";
-    let submissions = JSON.parse(docProps.getProperty(submissionKey) || '{}');
+    const submissions = JSON.parse(docProps.getProperty(submissionKey) || '{}');
+    const identifier = eventData.guestEmail || ('anonymous_' + Date.now());
 
-    const identifier = eventData.guestEmail || ('user_' + Date.now());
     submissions[identifier] = {
         startTime: eventData.startTime,
         endTime: eventData.endTime,
@@ -159,45 +186,53 @@ function handleGroupEvent(eventData) {
     };
     docProps.setProperty(submissionKey, JSON.stringify(submissions));
 
-    const bestFit = calculateBestFit(Object.values(submissions));
+    const allSubmissions = Object.values(submissions);
+    const bestFit = calculateBestFit(allSubmissions);
     if (!bestFit) return;
 
-    const allEmails = Object.values(submissions).map(s => s.guestEmail).filter(Boolean);
+    const guests = Array.from(new Set(
+        allSubmissions.map(function(submission) { return submission.guestEmail; })
+            .concat([eventData.publisherEmail])
+            .filter(Boolean)
+            .map(function(email) { return email.trim().toLowerCase(); })
+    ));
+
     const cal = CalendarApp.getDefaultCalendar();
     const groupEventIdKey = 'GROUP_MASTER_EVENT_ID';
     const masterEventId = docProps.getProperty(groupEventIdKey);
-
-    const allSubmissions = Object.values(submissions);
-    let aggregatedDescription = "Scheduled with CommonTime (Group)\n\nSubmitted Details:\n" + 
-        allSubmissions.map(s => `- ${s.guestEmail || 'Anonymous'}: "${s.summary || 'Meeting'}"`).join('\n');
-
+    const aggregatedDescription = "Scheduled with CommonTime (Group)\\n\\nSubmitted Details:\\n" +
+        allSubmissions.map(function(submission) {
+            return "- " + (submission.guestEmail || 'Anonymous') + ': "' +
+                (submission.summary || 'Meeting') + '"';
+        }).join('\\n');
     const meetingTitle = "Group Meeting";
+    let masterEvent = null;
 
     if (masterEventId) {
         try {
-            const masterEvent = cal.getEventById(masterEventId);
-            if (masterEvent) {
-                masterEvent.setTime(new Date(bestFit.startTime), new Date(bestFit.endTime));
-                masterEvent.setTitle(meetingTitle);
-                masterEvent.setDescription(aggregatedDescription);
-                allEmails.forEach(email => {
-                    try { masterEvent.addGuest(email); } catch (e) {}
-                });
-                sendConfirmationEmail(eventData.guestEmail, meetingTitle, bestFit.startTime, bestFit.endTime);
-                return;
-            }
-        } catch (r) {}
+            masterEvent = cal.getEventById(masterEventId);
+        } catch (err) {
+            Logger.log("Could not retrieve group event; creating a replacement.");
+        }
     }
 
-    const options = {
-        description: aggregatedDescription,
-        sendInvites: true,
-        guests: allEmails.join(',')
-    };
+    if (masterEvent) {
+        masterEvent.setTime(new Date(bestFit.startTime), new Date(bestFit.endTime));
+        masterEvent.setTitle(meetingTitle);
+        masterEvent.setDescription(aggregatedDescription);
+        addGuestsToEvent(masterEvent, guests);
+    } else {
+        const options = { description: aggregatedDescription, sendInvites: true };
+        if (guests.length) options.guests = guests.join(',');
+        masterEvent = cal.createEvent(
+            meetingTitle, new Date(bestFit.startTime), new Date(bestFit.endTime), options
+        );
+        docProps.setProperty(groupEventIdKey, masterEvent.getId());
+    }
 
-    const newMasterEvent = cal.createEvent(meetingTitle, new Date(bestFit.startTime), new Date(bestFit.endTime), options);
-    docProps.setProperty(groupEventIdKey, newMasterEvent.getId());
-    sendConfirmationEmail(eventData.guestEmail, meetingTitle, bestFit.startTime, bestFit.endTime);
+    // Confirm the current submission to both the publisher and this respondent.
+    notifyEventRecipients(getEventGuestEmails(eventData), meetingTitle,
+        bestFit.startTime, bestFit.endTime);
 }
 
 function calculateBestFit(subList) {
@@ -257,16 +292,12 @@ function geminiParse(input) {
 
 function sendConfirmationEmail(email, summary, startTime, endTime) {
     if (!email) return;
-    try {
-        const subject = "Meeting Confirmed: " + summary;
-        const body = `Hello,\n\nYour meeting "${summary}" has been successfully scheduled and added to the publisher's calendar.\n\n`
-                   + `📅 Time: ${new Date(startTime).toLocaleString()} - ${new Date(endTime).toLocaleString()}\n\n`
-                   + `A calendar invitation has also been sent to your inbox.\n\nThank you!`;
-        MailApp.sendEmail(email, subject, body);
-        Logger.log("Confirmation email successfully sent to " + email);
-    } catch (e) {
-        Logger.log("Failed to send confirmation email: " + e.toString());
-    }
+    const subject = "Meeting Confirmed: " + summary;
+    const body = `Hello,\\n\\nYour meeting "${summary}" has been scheduled in the CommonTime calendar.\\n\\n`
+               + `Time: ${new Date(startTime).toLocaleString()} - ${new Date(endTime).toLocaleString()}\\n\\n`
+               + `A calendar invitation has also been sent.\\n\\nThank you!`;
+    MailApp.sendEmail({ to: email, subject: subject, body: body });
+    Logger.log("Confirmation email successfully sent to " + email);
 }
 
 function getAvailableTemplates() {

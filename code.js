@@ -283,9 +283,8 @@ function geminiParse(input) {
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
     
-    // Switch to a currently supported standard model
-    const model = 'gemini-3.8-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    // List models to try in order of preference if one is busy/unavailable
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-pro'];
 
     const prompt = `Extract meeting timing details from user input as JSON with keys: summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;
 
@@ -296,28 +295,34 @@ function geminiParse(input) {
         }
     };
 
-    try {
-        const response = UrlFetchApp.fetch(url, {
-            method: "post",
-            contentType: "application/json",
-            payload: JSON.stringify(payload),
-            muteHttpExceptions: true,
-            timeoutSeconds: 15
-        });
+    for (const model of modelsToTry) {
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+            const response = UrlFetchApp.fetch(url, {
+                method: "post",
+                contentType: "application/json",
+                payload: JSON.stringify(payload),
+                muteHttpExceptions: true,
+                timeoutSeconds: 15
+            });
 
-        const responseCode = response.getResponseCode();
-        const responseText = response.getContentText();
+            const responseCode = response.getResponseCode();
+            const responseText = response.getContentText();
 
-        if (responseCode === 200) {
-            const jsonResponse = JSON.parse(responseText);
-            if (jsonResponse.candidates && jsonResponse.candidates[0].content) {
-                return JSON.parse(jsonResponse.candidates[0].content.parts[0].text);
+            if (responseCode === 200) {
+                const jsonResponse = JSON.parse(responseText);
+                if (jsonResponse.candidates && jsonResponse.candidates[0].content) {
+                    return JSON.parse(jsonResponse.candidates[0].content.parts[0].text);
+                }
+            } else {
+                Logger.log(`Model [${model}] returned code ${responseCode}: ${responseText}`);
             }
+        } catch (err) {
+            Logger.log(`Model [${model}] threw exception: ` + err.toString());
         }
-        throw new Error(`Gemini API returned code ${responseCode}: ${responseText}`);
-    } catch (err) {
-        throw new Error("Gemini API call failed: " + err.toString());
     }
+    
+    throw new Error("Gemini API call failed across all available models due to high demand or network issues. Please try again in a moment.");
 }
 
 function sendConfirmationEmail(email, summary, startTime, endTime) {

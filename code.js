@@ -4,6 +4,11 @@
  * ============================================================================
  */
 
+// Safe property store helper to prevent null errors during manual tests
+function getProps() {
+    return PropertiesService.getDocumentProperties() || PropertiesService.getScriptProperties();
+}
+
 function onOpen(e) {
     FormApp.getUi()
         .createAddonMenu()
@@ -18,11 +23,11 @@ function showSidebar() {
 }
 
 function setScheduleMode(mode) {
-    PropertiesService.getDocumentProperties().setProperty('SCHEDULING_MODE', mode);
+    getProps().setProperty('SCHEDULING_MODE', mode);
 }
 
 function getScheduleMode() {
-    return PropertiesService.getDocumentProperties().getProperty('SCHEDULING_MODE') || 'SINGLE';
+    return getProps().getProperty('SCHEDULING_MODE') || 'SINGLE';
 }
 
 function toggleTriggerOn(formId) {
@@ -37,7 +42,7 @@ function toggleTriggerOn(formId) {
     if (!publisherEmail) {
         throw new Error("Could not determine the publisher email. Reauthorize the script and enable sync again.");
     }
-    PropertiesService.getDocumentProperties().setProperty('PUBLISHER_EMAIL', publisherEmail);
+    getProps().setProperty('PUBLISHER_EMAIL', publisherEmail);
 
     removeExistingTriggers(form.getId());
     ScriptApp.newTrigger('onFormSubmit')
@@ -66,7 +71,6 @@ function toggleTriggerOff() {
 }
 
 function removeExistingTriggers(formId) {
-    // Project triggers works even if the form is not the currently active form.
     ScriptApp.getProjectTriggers().forEach(function (trigger) {
         if (trigger.getHandlerFunction() === 'onFormSubmit' &&
             trigger.getTriggerSourceId() === formId) {
@@ -104,7 +108,7 @@ function onFormSubmit(e) {
             throw new Error("Parsed meeting dates are invalid; end time must be after start time.");
         }
 
-        const props = PropertiesService.getDocumentProperties();
+        const props = getProps();
         parsedData.guestEmail = respEmail;
         parsedData.publisherEmail = (props.getProperty('PUBLISHER_EMAIL') ||
             Session.getEffectiveUser().getEmail() || '').trim();
@@ -162,7 +166,7 @@ function notifyEventRecipients(emails, summary, startTime, endTime) {
 }
 
 function handleIndEvent(eventData) {
-    const docProps = PropertiesService.getDocumentProperties();
+    const docProps = getProps();
     const emailKey = 'EVENT_ID_' + (eventData.guestEmail ? eventData.guestEmail.toLowerCase() : 'anonymous');
     const existingEventId = docProps.getProperty(emailKey);
     const cal = CalendarApp.getDefaultCalendar();
@@ -198,7 +202,7 @@ function handleIndEvent(eventData) {
 }
 
 function handleGroupEvent(eventData) {
-    const docProps = PropertiesService.getDocumentProperties();
+    const docProps = getProps();
     const submissionKey = "ALL_GROUP_SUBMISSIONS";
     const submissions = JSON.parse(docProps.getProperty(submissionKey) || '{}');
     const identifier = eventData.guestEmail || ('anonymous_' + Date.now());
@@ -255,7 +259,6 @@ function handleGroupEvent(eventData) {
         docProps.setProperty(groupEventIdKey, masterEvent.getId());
     }
 
-    // Confirm the current submission to both the publisher and this respondent.
     notifyEventRecipients(getNotificationEmails(eventData), meetingTitle,
         bestFit.startTime, bestFit.endTime);
 }
@@ -274,15 +277,13 @@ function calculateBestFit(subList) {
 function geminiParse(input) {
     const apiKey = PropertiesService.getScriptProperties().getProperty('gemini_api_key');
     if (!apiKey) {
-        throw new Error("Missing 'gemini_api_key' in Script Properties. Please add it under Project Settings > Script Properties.");
+        throw new Error("Missing 'gemini_api_key' in Script Properties.");
     }
 
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
-    // Use proven, stable model names
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-3.6-flash',
-        'gemini-2.5-flash', 'gemini-2.5-pro',
-        'gemini-1.5-flash', 'gemini-flash-latest'];
+    const model = 'gemini-1.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const prompt = `Extract meeting timing details from user input as JSON with keys: summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;
 
@@ -293,13 +294,13 @@ function geminiParse(input) {
         }
     };
 
-    for (const model of modelsToTry) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    try {
         const response = UrlFetchApp.fetch(url, {
             method: "post",
             contentType: "application/json",
             payload: JSON.stringify(payload),
-            muteHttpExceptions: true
+            muteHttpExceptions: true,
+            timeoutSeconds: 15
         });
 
         const responseCode = response.getResponseCode();
@@ -307,20 +308,22 @@ function geminiParse(input) {
 
         if (responseCode === 200) {
             const jsonResponse = JSON.parse(responseText);
-            return JSON.parse(jsonResponse.candidates[0].content.parts[0].text);
-        } else {
-            Logger.log(`Gemini Model [${model}] failed with code ${responseCode}: ${responseText}`);
+            if (jsonResponse.candidates && jsonResponse.candidates[0].content) {
+                return JSON.parse(jsonResponse.candidates[0].content.parts[0].text);
+            }
         }
+        throw new Error(`Gemini API returned code ${responseCode}: ${responseText}`);
+    } catch (err) {
+        throw new Error("Gemini API call failed: " + err.toString());
     }
-    throw new Error("Gemini API call failed across all models. Check your API key and quota.");
 }
 
 function sendConfirmationEmail(email, summary, startTime, endTime) {
     if (!email) return;
     const subject = "Meeting Confirmed: " + summary;
     const body = "Your meeting '" + summary + "' has been scheduled in the CommonTime calendar.\n\n" +
-        "Time: " + new Date(startTime).toLocaleString() + " - " + new Date(endTime).toLocaleString() + "\n\n" +
-        "A calendar invitation has also been sent.";
+                 "Time: " + new Date(startTime).toLocaleString() + " - " + new Date(endTime).toLocaleString() + "\n\n" +
+                 "A calendar invitation has also been sent.";
     MailApp.sendEmail({ to: email, subject: subject, body: body });
     Logger.log("Confirmation email successfully sent to " + email);
 }
@@ -364,7 +367,7 @@ function applyTemplate(templateId) {
     } else {
         throw new Error("Unknown form template: " + templateId);
     }
-    PropertiesService.getDocumentProperties().setProperty('ACTIVE_TEMPLATE', templateId);
+    getProps().setProperty('ACTIVE_TEMPLATE', templateId);
     return "Template applied successfully!";
 }
 
@@ -405,12 +408,12 @@ function getPublisherOpenSlots() {
 }
 
 function setCutoffDays(days) {
-    PropertiesService.getDocumentProperties().setProperty('CUTOFF_DAYS', days);
+    getProps().setProperty('CUTOFF_DAYS', days);
     return "Availability window saved successfully!";
 }
 
 function getCutoffDays() {
-    return PropertiesService.getDocumentProperties().getProperty('CUTOFF_DAYS') || '14';
+    return getProps().getProperty('CUTOFF_DAYS') || '14';
 }
 
 function testManualSubmission() {

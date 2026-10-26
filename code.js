@@ -284,7 +284,7 @@ function geminiParse(input) {
     const nowISO = new Date().toISOString();
     
     // Switch to a currently supported standard model
-    const model = 'gemini-2.5-flash';
+    const model = 'gemini-3.8-flash';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const prompt = `Extract meeting timing details from user input as JSON with keys: summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;

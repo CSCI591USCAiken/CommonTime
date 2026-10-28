@@ -283,8 +283,8 @@ function geminiParse(input) {
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
     
-    // List models to try in order of preference if one is busy/unavailable
     const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-pro'];
+    const maxAttemptsPerModel = 3;
 
     const prompt = `Extract meeting timing details from user input as JSON with keys: summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;
 
@@ -295,34 +295,97 @@ function geminiParse(input) {
         }
     };
 
+    let lastError = null;
+
     for (const model of modelsToTry) {
-        try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-            const response = UrlFetchApp.fetch(url, {
-                method: "post",
-                contentType: "application/json",
-                payload: JSON.stringify(payload),
-                muteHttpExceptions: true,
-                timeoutSeconds: 15
-            });
+        for (let attempt = 1; attempt <= maxAttemptsPerModel; attempt++) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                const response = UrlFetchApp.fetch(url, {
+                    method: "post",
+                    contentType: "application/json",
+                    payload: JSON.stringify(payload),
+                    muteHttpExceptions: true,
+                    timeoutSeconds: 15
+                });
 
-            const responseCode = response.getResponseCode();
-            const responseText = response.getContentText();
+                const responseCode = response.getResponseCode();
+                const responseText = response.getContentText();
 
-            if (responseCode === 200) {
-                const jsonResponse = JSON.parse(responseText);
-                if (jsonResponse.candidates && jsonResponse.candidates[0].content) {
-                    return JSON.parse(jsonResponse.candidates[0].content.parts[0].text);
+                if (responseCode === 404) {
+                    lastError = new Error(`Gemini model [${model}] was not found or is unavailable.`);
+                    Logger.log(lastError.message + " Trying the next model.");
+                    break;
                 }
-            } else {
-                Logger.log(`Model [${model}] returned code ${responseCode}: ${responseText}`);
+
+                if (responseCode !== 200) {
+                    const apiMessage = getGeminiApiErrorMessage(responseText);
+                    lastError = new Error(`Gemini model [${model}] returned HTTP ${responseCode}: ${apiMessage}`);
+
+                    if ([408, 429, 500, 502, 503, 504].indexOf(responseCode) === -1) {
+                        lastError.retryable = false;
+                        throw lastError;
+                    }
+
+                    Logger.log(lastError.message);
+                    if (attempt < maxAttemptsPerModel) {
+                        Utilities.sleep(getGeminiRetryDelay(attempt));
+                        continue;
+                    }
+                    break;
+                }
+
+                const jsonResponse = JSON.parse(responseText);
+                const candidate = jsonResponse.candidates && jsonResponse.candidates[0];
+                if (jsonResponse.promptFeedback && jsonResponse.promptFeedback.blockReason) {
+                    const blockedError = new Error("Gemini blocked the request: " + jsonResponse.promptFeedback.blockReason);
+                    blockedError.retryable = false;
+                    throw blockedError;
+                }
+                const responseContent = candidate && candidate.content;
+                const responsePart = responseContent && responseContent.parts && responseContent.parts[0];
+                if (!responsePart || typeof responsePart.text !== 'string') {
+                    throw new Error("Gemini response did not contain generated text.");
+                }
+
+                const parsed = JSON.parse(responsePart.text);
+                const start = new Date(parsed.startTime);
+                const end = new Date(parsed.endTime);
+                if (!parsed || !parsed.startTime || !parsed.endTime ||
+                    isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+                    throw new Error("Gemini response did not contain valid start and end times.");
+                }
+                return parsed;
+            } catch (err) {
+                lastError = err;
+                Logger.log(`Model [${model}] attempt ${attempt}/${maxAttemptsPerModel} failed: ${err.message || err}`);
+
+                if (err.retryable === false) {
+                    throw err;
+                }
+                if (attempt < maxAttemptsPerModel) {
+                    Utilities.sleep(getGeminiRetryDelay(attempt));
+                }
             }
-        } catch (err) {
-            Logger.log(`Model [${model}] threw exception: ` + err.toString());
         }
     }
-    
-    throw new Error("Gemini API call failed across all available models due to high demand or network issues. Please try again in a moment.");
+
+    throw new Error("Gemini parsing failed after retries and model failover. " +
+        (lastError ? lastError.message : "No model was configured."));
+}
+
+function getGeminiRetryDelay(attempt) {
+    const backoffMs = Math.min(8000, 1000 * Math.pow(2, attempt - 1));
+    return backoffMs + Math.floor(Math.random() * 250);
+}
+
+function getGeminiApiErrorMessage(responseText) {
+    try {
+        const body = JSON.parse(responseText);
+        if (body.error && body.error.message) return body.error.message;
+    } catch (err) {
+    }
+    return String(responseText || "Unknown API error").slice(0, 500);
 }
 
 function sendConfirmationEmail(email, summary, startTime, endTime) {

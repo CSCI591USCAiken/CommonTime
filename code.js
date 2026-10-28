@@ -283,7 +283,13 @@ function geminiParse(input) {
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
     
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-pro', 'gemini-2.5-flash', 'gemini-1.8-flash', 'gemini-1.8-pro', 'gemini-2.5-pro'];
+    const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-pro', 'gemini-2.5-flash',
+         'gemini-1.8-flash', 'gemini-1.8-pro', 'gemini-2.5-pro',
+        'gemini-2.5-flash-preview-tts', 'gemini-2.5-pro-preview-tts',
+        'gemma-4-26b-a4b-it', 'gemma-4-31b-it', 'gemini-flash-latest',
+        'gemini-flash-lite-latest', 'gemini-pro-latest', 'gemini-2.5-flash-lite',
+        'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-3.6-flash',
+        'gemini-3.7-flash'];
     const maxAttemptsPerModel = 3;
 
     const prompt = `Extract meeting timing details from user input as JSON with keys: summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;

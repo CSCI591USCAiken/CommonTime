@@ -524,3 +524,31 @@ function testManualSubmission() {
         throw err;
     }
 }
+
+function listGeminiModels() {
+    const apiKey = PropertiesService.getScriptProperties().getProperty('gemini_api_key');
+    if (!apiKey) throw new Error("Missing 'gemini_api_key' in Script Properties.");
+
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models?key=' +
+        encodeURIComponent(apiKey);
+    const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+    const status = response.getResponseCode();
+    const body = JSON.parse(response.getContentText());
+
+    if (status !== 200) {
+        throw new Error(`ListModels failed (${status}): ${body.error?.message || 'Unknown error'}`);
+    }
+
+    const compatible = (body.models || [])
+        .filter(model =>
+            (model.supportedGenerationMethods || []).includes('generateContent')
+        )
+        .map(model => ({
+            name: model.name.replace(/^models\//, ''),
+            displayName: model.displayName,
+            methods: model.supportedGenerationMethods
+        }));
+
+    Logger.log(JSON.stringify(compatible, null, 2));
+    return compatible;
+}

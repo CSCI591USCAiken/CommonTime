@@ -283,10 +283,12 @@ function geminiParse(input) {
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
     
-    const modelsToTry = ['gemini-3.8-flash', 'gemini-1.5-pro', 'gemini-2.5-flash',
+
+    //Flash-Lite-Latest is the first working vers
+    const modelsToTry = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-1.5-pro', 'gemini-2.5-flash',
          'gemini-1.8-flash', 'gemini-1.8-pro', 'gemini-2.5-pro',
         'gemma-4-26b-a4b-it', 'gemma-4-31b-it', 'gemini-flash-latest',
-        'gemini-flash-lite-latest', 'gemini-pro-latest', 'gemini-2.5-flash-lite',
+        'gemini-pro-latest', 'gemini-2.5-flash-lite',
         'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-3.6-flash',
         'gemini-3.7-flash', 'gemini-4-argon', 'lyria-3.5'];
     const maxAttemptsPerModel = 3;

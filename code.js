@@ -45,13 +45,13 @@ function toggleTriggerOn(formId) {
     getProps().setProperty('PUBLISHER_EMAIL', publisherEmail);
 
     removeExistingTriggers(form.getId());
-    ScriptApp.newTrigger('onFormSubmit')
+    ScriptApp.newTrigger('commonTimeFormSubmitEntryPoint')
         .forForm(form)
         .onFormSubmit()
         .create();
 
     const triggerInstalled = ScriptApp.getProjectTriggers().some(function (trigger) {
-        return trigger.getHandlerFunction() === 'onFormSubmit' &&
+        return trigger.getHandlerFunction() === 'commonTimeFormSubmitEntryPoint' &&
             trigger.getTriggerSourceId() === form.getId();
     });
     if (!triggerInstalled) {
@@ -72,11 +72,17 @@ function toggleTriggerOff() {
 
 function removeExistingTriggers(formId) {
     ScriptApp.getProjectTriggers().forEach(function (trigger) {
-        if (trigger.getHandlerFunction() === 'onFormSubmit' &&
+        const handler = trigger.getHandlerFunction();
+        if ((handler === 'onFormSubmit' || handler === 'commonTimeFormSubmitEntryPoint') &&
             trigger.getTriggerSourceId() === formId) {
             ScriptApp.deleteTrigger(trigger);
         }
     });
+}
+
+function commonTimeFormSubmitEntryPoint(e) {
+    Logger.log("CommonTime form-submit trigger received an event.");
+    onFormSubmit(e);
 }
 
 function onFormSubmit(e) {

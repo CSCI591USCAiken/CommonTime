@@ -289,7 +289,7 @@ function geminiParse(input) {
         'gemma-4-26b-a4b-it', 'gemma-4-31b-it', 'gemini-flash-latest',
         'gemini-flash-lite-latest', 'gemini-pro-latest', 'gemini-2.5-flash-lite',
         'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-3.6-flash',
-        'gemini-3.7-flash'];
+        'gemini-3.7-flash', 'gemini-4-argon', 'lyria-3.5'];
     const maxAttemptsPerModel = 3;
 
     const prompt = `Extract meeting timing details from user input as JSON with keys: summary, startTime, endTime, description. Current Time: ${nowISO}, Timezone: ${timezone}. Input: "${input}"`;

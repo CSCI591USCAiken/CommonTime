@@ -2,6 +2,9 @@
  * ============================================================================
  * COMMONTIME SCHEDULER ADD-ON - MAIN BACKEND (CODE.GS)
  * ============================================================================
+ * This script powers the Google Forms add-on backend for scheduling meetings.
+ * It integrates Google Forms with Google Calendar and uses the Gemini AI API 
+ * to interpret natural language time entries from form submissions.
  */
 
 // Safe property store helper to prevent null errors during manual tests
@@ -9,6 +12,10 @@ function getProps() {
     return PropertiesService.getDocumentProperties() || PropertiesService.getScriptProperties();
 }
 
+/**
+ * UI & SIDEBAR SETUP
+ * Creates the custom Google Forms UI menu and renders the sidebar interface.
+ */
 function onOpen(e) {
     FormApp.getUi()
         .createAddonMenu()
@@ -22,6 +29,10 @@ function showSidebar() {
     FormApp.getUi().showSidebar(ui);
 }
 
+/**
+ * SCHEDULING MODE SETTINGS
+ * Manages whether meetings are scheduled individually or aggregated as a group.
+ */
 function setScheduleMode(mode) {
     getProps().setProperty('SCHEDULING_MODE', mode);
 }
@@ -30,6 +41,10 @@ function getScheduleMode() {
     return getProps().getProperty('SCHEDULING_MODE') || 'SINGLE';
 }
 
+/**
+ * TRIGGER MANAGEMENT
+ * Handles creating, verifying, and removing form-submit automated triggers.
+ */
 function toggleTriggerOn(formId) {
     const form = formId ? FormApp.openById(formId) : FormApp.getActiveForm();
     if (!form) {
@@ -45,13 +60,13 @@ function toggleTriggerOn(formId) {
     getProps().setProperty('PUBLISHER_EMAIL', publisherEmail);
 
     removeExistingTriggers(form.getId());
-    ScriptApp.newTrigger('commonTimeFormSubmitEntryPoint')
+    ScriptApp.newTrigger('onFormSubmit')
         .forForm(form)
         .onFormSubmit()
         .create();
 
     const triggerInstalled = ScriptApp.getProjectTriggers().some(function (trigger) {
-        return trigger.getHandlerFunction() === 'commonTimeFormSubmitEntryPoint' &&
+        return trigger.getHandlerFunction() === 'onFormSubmit' &&
             trigger.getTriggerSourceId() === form.getId();
     });
     if (!triggerInstalled) {
@@ -73,23 +88,27 @@ function toggleTriggerOff() {
 function removeExistingTriggers(formId) {
     ScriptApp.getProjectTriggers().forEach(function (trigger) {
         const handler = trigger.getHandlerFunction();
-        if ((handler === 'onFormSubmit' || handler === 'commonTimeFormSubmitEntryPoint') &&
+        if ((handler === 'onFormSubmit' ||
+            handler === 'commonTimeFormSubmitEntryPoint' ||
+            handler === 'minimalFormSubmitProbe') &&
             trigger.getTriggerSourceId() === formId) {
             ScriptApp.deleteTrigger(trigger);
         }
     });
 }
 
-function commonTimeFormSubmitEntryPoint(e) {
-    Logger.log("CommonTime form-submit trigger received an event.");
-    onFormSubmit(e);
-}
-
+/**
+ * FORM SUBMISSION PROCESSING ENGINE
+ * Main entry point triggered when a user submits a form. Extracts text, 
+ * queries Gemini AI to parse dates, and dispatches to calendar handlers.
+ */
 function onFormSubmit(e) {
+    Logger.log("CommonTime form-submit handler started.");
     try {
         if (!e || !e.response) {
             throw new Error("Form-submit trigger did not include a response.");
         }
+        Logger.log("Received form response ID: " + e.response.getId());
 
         const respEmail = (e.response.getRespondentEmail() || '').trim();
         if (!respEmail) {
@@ -133,6 +152,10 @@ function onFormSubmit(e) {
     }
 }
 
+/**
+ * CALENDAR INTEGRATION & NOTIFICATIONS
+ * Manages participant lists, sends invitations, and fires confirmation emails.
+ */
 function getEventGuestEmails(eventData) {
     return Array.from(new Set([eventData.guestEmail]
         .filter(Boolean)
@@ -280,6 +303,11 @@ function calculateBestFit(subList) {
     return { startTime: subList[subList.length - 1].startTime, endTime: subList[subList.length - 1].endTime };
 }
 
+/**
+ * GEMINI AI PARSING ENGINE
+ * Sends free-form user text responses to the Gemini API with failover model support
+ * to reliably extract structured JSON meeting timing information.
+ */
 function geminiParse(input) {
     const apiKey = PropertiesService.getScriptProperties().getProperty('gemini_api_key');
     if (!apiKey) {
@@ -288,12 +316,13 @@ function geminiParse(input) {
 
     const timezone = Session.getScriptTimeZone();
     const nowISO = new Date().toISOString();
-    
 
-    //Flash-Lite-Latest is the first working vers
-    const modelsToTry = ['gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-1.5-pro', 'gemini-2.5-flash',
-         'gemini-1.8-flash', 'gemini-1.8-pro', 'gemini-2.5-pro',
-        'gemma-4-26b-a4b-it', 'gemma-4-31b-it', 'gemini-flash-latest',
+    const modelsToTry = ['gemini-2.5-flash',
+        'gemini-2.5-flash-lite',
+        'gemini-1.5-flash',
+        'gemini-1.5-pro', 'gemini-flash-lite-latest', 'gemini-3.8-flash', 'gemini-1.5-pro', 'gemini-2.5-flash',
+        'gemini-1.8-flash', 'gemini-1.8-pro', 'gemini-2.5-pro',
+        'gemini-flash-latest',
         'gemini-pro-latest', 'gemini-2.5-flash-lite',
         'gemini-3.1-pro-preview', 'gemini-3.1-flash-lite', 'gemini-3.6-flash',
         'gemini-3.7-flash', 'gemini-4-argon', 'lyria-3.5'];
@@ -405,12 +434,16 @@ function sendConfirmationEmail(email, summary, startTime, endTime) {
     if (!email) return;
     const subject = "Meeting Confirmed: " + summary;
     const body = "Your meeting '" + summary + "' has been scheduled in the CommonTime calendar.\n\n" +
-                 "Time: " + new Date(startTime).toLocaleString() + " - " + new Date(endTime).toLocaleString() + "\n\n" +
-                 "A calendar invitation has also been sent.";
+        "Time: " + new Date(startTime).toLocaleString() + " - " + new Date(endTime).toLocaleString() + "\n\n" +
+        "A calendar invitation has also been sent.";
     MailApp.sendEmail({ to: email, subject: subject, body: body });
     Logger.log("Confirmation email successfully sent to " + email);
 }
 
+/**
+ * FORM TEMPLATES & AVAILABILITY CALCULATOR
+ * Builds pre-defined form layouts and evaluates Google Calendar slots to suggest times.
+ */
 function getAvailableTemplates() {
     return [
         { id: 'standard', name: 'Standard 30-min Meeting', description: 'Asks for preferred date and time.' },
@@ -499,6 +532,10 @@ function getCutoffDays() {
     return getProps().getProperty('CUTOFF_DAYS') || '14';
 }
 
+/**
+ * UTILITIES, TESTS, & DIAGNOSTICS
+ * Helper functions used for local debugging, mocking form submits, and verifying Gemini models.
+ */
 function testManualSubmission() {
     const mockEvent = {
         response: {
@@ -565,3 +602,21 @@ function listGeminiModels() {
     Logger.log(JSON.stringify(compatible, null, 2));
     return compatible;
 }
+
+/**
+ * ============================================================================
+ * EXPLANATION: GCP WORKFLOW & TEST DEPLOYMENTS
+ * ============================================================================
+ * The Google Cloud Platform (GCP) draft app workaround is necessary because Google Forms 
+ * add-ons require a registered Google Cloud project and proper authorization scopes to 
+ * register event listeners like `onFormSubmit` across multiple forms. Without configuring 
+ * a draft project, the add-on cannot cleanly bind its installer and runtime permissions 
+ * to live form submission events.
+ * 
+ * Standard Apps Script test deployments or code-editor test runs often fail or behave 
+ * differently because they run under temporary, restricted execution tokens that do not 
+ * simulate the full lifecycle of an installable marketplace add-on. By setting up a draft 
+ * GCP app and whitelisting external test user emails, developers can properly emulate how 
+ * installed OAuth scopes, triggers, and runtime permissions will behave for real end users 
+ * before sending the application through formal Google review.
+ */

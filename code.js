@@ -246,7 +246,8 @@ function handleGroupEvent(eventData) {
     docProps.setProperty(submissionKey, JSON.stringify(submissions));
 
     const allSubmissions = Object.values(submissions);
-    const bestFit = calculateBestFit(allSubmissions);
+    
+    const bestFit = calculateBestFitScored(allSubmissions);
     if (!bestFit) return;
 
     const guests = Array.from(new Set(
@@ -292,15 +293,94 @@ function handleGroupEvent(eventData) {
         bestFit.startTime, bestFit.endTime);
 }
 
-function calculateBestFit(subList) {
+/**
+ * POINT-BASED SCHEDULING ALGORITHM
+ * Evaluates discrete time slots against publisher calendar availability 
+ * and all collected respondent preferences using a weighted scoring model.
+ */
+function calculateBestFitScored(subList) {
     if (!subList || subList.length === 0) return null;
-    let latestStart = new Date(Math.max(...subList.map(s => new Date(s.startTime).getTime())));
-    let earliestEnd = new Date(Math.min(...subList.map(s => new Date(s.endTime).getTime())));
 
-    if (latestStart < earliestEnd) {
-        return { startTime: latestStart.toISOString(), endTime: earliestEnd.toISOString() };
+    const cal = CalendarApp.getDefaultCalendar();
+    const now = new Date();
+    const horizonDays = parseInt(getCutoffDays(), 10) || 14;
+    const horizonEnd = new Date(now.getTime() + horizonDays * 24 * 60 * 60 * 1000);
+
+    // Fetch publisher's existing calendar events for conflict detection
+    const publisherEvents = cal.getEvents(now, horizonEnd);
+
+    // Define slot granularity (e.g., 30-minute intervals)
+    const slotDurationMs = 30 * 60 * 1000;
+    const scoredSlots = [];
+
+    // Determine the global date range bounds from all submissions
+    const allStartTimes = subList.map(s => new Date(s.startTime).getTime());
+    const allEndTimes = subList.map(s => new Date(s.endTime).getTime());
+    const rangeStart = new Date(Math.max(now.getTime(), Math.min(...allStartTimes)));
+    const rangeEnd = new Date(Math.max(...allEndTimes));
+
+    // Iterate through time in 30-minute increments
+    let currentSlotStart = new Date(rangeStart);
+    while (currentSlotStart < rangeEnd) {
+        let currentSlotEnd = new Date(currentSlotStart.getTime() + slotDurationMs);
+
+        // 1. Check Publisher Conflict
+        const publisherBusy = publisherEvents.some(ev => 
+            currentSlotStart < ev.getEndTime() && currentSlotEnd > ev.getStartTime()
+        );
+
+        if (!publisherBusy) {
+            let score = 0;
+            let matchingRespondents = 0;
+
+            // 2. Score Respondent Overlap (+50 points per matching respondent)
+            subList.forEach(sub => {
+                const subStart = new Date(sub.startTime).getTime();
+                const subEnd = new Date(sub.endTime).getTime();
+                
+                // Check if this slot falls within the respondent's stated availability
+                if (currentSlotStart.getTime() >= subStart && currentSlotEnd.getTime() <= subEnd) {
+                    matchingRespondents++;
+                    score += 50;
+                }
+            });
+
+            // Only consider slots where at least the publisher and one respondent fit, 
+            // or use a fallback if it's a group meeting with strict overlap requirements.
+            if (matchingRespondents > 0) {
+                // 3. Bonus: Core Working Hours (9 AM - 5 PM local time) (+20 points)
+                const hour = currentSlotStart.getHours();
+                if (hour >= 9 && hour < 17) {
+                    score += 20;
+                }
+
+                // 4. Bonus: Proximity (Favor sooner dates slightly) (+10 max points decay)
+                const daysOut = (currentSlotStart - now) / (1000 * 60 * 60 * 24);
+                score += Math.max(0, 10 - Math.floor(daysOut));
+
+                scoredSlots.push({
+                    startTime: new Date(currentSlotStart).toISOString(),
+                    endTime: new Date(currentSlotEnd).toISOString(),
+                    score: score,
+                    matches: matchingRespondents
+                });
+            }
+        }
+
+        // Advance to next slot
+        currentSlotStart = new Date(currentSlotStart.getTime() + slotDurationMs);
     }
-    return { startTime: subList[subList.length - 1].startTime, endTime: subList[subList.length - 1].endTime };
+
+    if (scoredSlots.length === 0) {
+        Logger.log("No scored slots found matching publisher availability and respondents. Falling back to default intersection.");
+        return calculateBestFit(subList); // Fallback to your original logic
+    }
+
+    // Sort by highest score descending
+    scoredSlots.sort((a, b) => b.score - a.score);
+
+    Logger.log("Best scored time slot selected: " + JSON.stringify(scoredSlots[0]));
+    return scoredSlots[0];
 }
 
 /**

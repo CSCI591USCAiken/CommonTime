@@ -1,0 +1,17 @@
+{
+  "verified": [
+    "Automatic sample-template preview updates the duration and context",
+    "Organizer settings persist and carry into the client preview link",
+    "A demo client submission appears in the organizer dashboard in another tab",
+    "Response overlap updates and a local demo booking is created",
+    "Real Google Form loads explicitly in its own panel without a real submission",
+    "Organizer and client layouts have no horizontal overflow at a 390px viewport",
+    "Time-zone helper displays the converted sample slots",
+    "Pending integration reports unavailable instead of connecting Google",
+    "No organizer JavaScript errors observed"
+  ],
+  "realGoogleResponsesSubmitted": 0,
+  "liveCalendarWrites": 0,
+  "googleScriptChanges": 0,
+  "githubPushes": 0
+}

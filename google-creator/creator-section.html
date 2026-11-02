@@ -1,0 +1,25 @@
+<details id="ctmCreator" style="margin:18px 0;padding:14px;border:1px solid #ddd6e4;border-radius:12px;background:#faf8fc">
+<summary style="font-weight:700;cursor:pointer">Create a new Google Form ＋</summary>
+<p>Choose a template and calendar. Each new form gets its own scheduling trigger.</p>
+<form id="ctmForm">
+<label>Meeting title<input id="ctmTitle" required maxlength="100" value="Team planning session"></label>
+<label>Purpose<textarea id="ctmPurpose" maxlength="500" rows="2"></textarea></label>
+<label>Template<select id="ctmTemplate"><option value="standard">Flexible date and time windows</option><option value="strict_availability">Currently free calendar slots</option></select></label>
+<label>Duration<select id="ctmMinutes"><option>15</option><option selected>30</option><option>45</option><option>60</option></select></label>
+<label>Meeting type<select id="ctmMode"><option value="GROUP">One meeting for received responses</option><option value="SINGLE">One meeting per participant</option></select></label>
+<label>Availability window<select id="ctmDays"><option>7</option><option selected>14</option><option>30</option></select></label>
+<label>Time zone<select id="ctmZone"><option>America/New_York</option><option>America/Chicago</option><option>America/Denver</option><option>America/Los_Angeles</option><option>Europe/London</option><option>UTC</option></select></label>
+<label>Calendar<select id="ctmCalendar" required><option value="">Loading calendars…</option></select></label>
+<p style="font-size:11px">Calendars you own, including those you share. Scheduling runs after each response; later group responses may move the meeting. Flexible responses are grouped by date. Participants only need the link.</p>
+<button id="ctmCreate" type="submit" disabled>Create Google Form &amp; connect</button>
+</form><p id="ctmStatus" role="status"></p><div id="ctmResult" hidden><a id="ctmEdit" target="_blank" rel="noopener">Edit the new Google Form ↗</a><p><a id="ctmContinue" target="_blank" rel="noopener">Continue in CommonTime →</a></p><small>Continue to save this form’s participant page and copy its link.</small></div>
+</details>
+<script>
+(function(){
+const $=id=>document.getElementById(id);let loaded=false,requestId='';
+const rpc=(name,arg)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](arg));
+$('ctmCreator').addEventListener('toggle',async()=>{if(!$('ctmCreator').open||loaded)return;try{if(typeof google==='undefined'||!google.script)throw Error('Open this creator inside Google Forms to connect your account.');const data=await rpc('CTM_listCalendars');$('ctmCalendar').replaceChildren(...data.calendars.map(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name+(c.primary?' · primary':'');o.selected=c.primary;return o;}));loaded=true;$('ctmCreate').disabled=!data.calendars.length;$('ctmStatus').textContent=data.calendars.length?'Choose your settings, then create.':'No owned calendars found.';}catch(e){$('ctmStatus').textContent=e.message;}});
+$('ctmForm').addEventListener('input',()=>{requestId='';});
+$('ctmForm').addEventListener('submit',async e=>{e.preventDefault();$('ctmCreate').disabled=true;$('ctmStatus').textContent='Creating your Google Form and connecting its calendar…';requestId=requestId||('ctm-'+Date.now()+'-'+Math.random().toString(36).slice(2));try{const r=await rpc('CTM_createForm',{title:$('ctmTitle').value,purpose:$('ctmPurpose').value,template:$('ctmTemplate').value,minutes:Number($('ctmMinutes').value),mode:$('ctmMode').value,days:Number($('ctmDays').value,10),timezone:$('ctmZone').value,calendarId:$('ctmCalendar').value,requestId});$('ctmEdit').href=r.editUrl;$('ctmContinue').href=r.continueUrl;$('ctmResult').hidden=false;$('ctmStatus').textContent='Google Form created. Its submit trigger is connected to your selected calendar.';}catch(error){$('ctmStatus').textContent=error.message;}finally{$('ctmCreate').disabled=false;}});
+})();
+</script>

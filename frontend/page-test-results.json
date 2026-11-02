@@ -1,0 +1,23 @@
+{
+  "passed": 18,
+  "tests": [
+    "Each distinct Google Form gets its own saved page",
+    "Repeated registration of the same form reuses its original page",
+    "Page mappings survive a database reload",
+    "Public records never carry a destination calendar or credentials",
+    "Invalid forms and missing titles cannot create pages",
+    "Unknown page IDs never fall back to a different form",
+    "Non-Latin titles get safe unique routes and preserve their display title",
+    "Host management API rejects requests without the workspace token",
+    "Cross-origin registration is rejected",
+    "Registration returns a unique page and the exact Google Form URL",
+    "Public participant lookup needs no organizer token",
+    "Unique participant routes serve the form page with root-relative assets",
+    "Unknown API page returns 404 instead of another form",
+    "Workspace list contains its created page",
+    "Duplicate API calls reuse the saved participant link",
+    "Page database and server-only modules are not publicly served",
+    "Participant links retain their mapping after server restart",
+    "A stale host-session token is rejected after restart"
+  ]
+}

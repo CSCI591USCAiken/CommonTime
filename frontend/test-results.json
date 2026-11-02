@@ -1,0 +1,33 @@
+{
+  "passed": 28,
+  "tests": [
+    "Google respondent URL is normalized without tracking parameters",
+    "Untrusted embed origin is rejected",
+    "Editor and javascript links are rejected",
+    "Embedded URL credentials are rejected",
+    "Unsupported modes, durations, zones and dates fall back safely",
+    "Public preview link omits private calendar and response state",
+    "Unicode meeting titles survive link round-trip",
+    "Malformed shared configuration is rejected",
+    "Sample overlap includes only received responses",
+    "Empty responses have no fabricated overlap",
+    "Template builder validates a blank prompt",
+    "Local template uses supported duration from a description",
+    "Demo configuration persists through an adapter reload",
+    "Demo responses are visible to a second adapter without network access",
+    "Demo submission rejects empty or unsupported slots",
+    "Group booking requires all received responses to overlap",
+    "Created booking is explicitly a local demo event",
+    "Individual bookings allocate separate non-overlapping sample times",
+    "Blocked browser storage retains settings in memory",
+    "Malformed stored response rows do not break the dashboard",
+    "Demo reset clears local booking and restores sample participants",
+    "Live adapter reports unavailable instead of faking authentication",
+    "Time helper honors Eastern daylight and standard time",
+    "Time helper supports London and UTC",
+    "Participant link opens the exact attached respondent form",
+    "Participant page requires a form and never falls back to a sample",
+    "Participant page rejects non-Google embeds",
+    "Participant link excludes calendar, sample slots, and private response data"
+  ]
+}

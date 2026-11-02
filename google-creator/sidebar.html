@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <base target="_blank">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CommonTime · Organizer</title>
+  <style>
+    :root{--ink:#303047;--muted:#706d7b;--paper:#f6f4ef;--line:#dfdce3;--copper:#c6855f;--indigo:#343452}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:12px/1.5 'Segoe UI',Arial,sans-serif}
+    button,input{font:inherit}button,a,input{touch-action:manipulation}button,a{ -webkit-tap-highlight-color:transparent}button{cursor:pointer}button:disabled{cursor:wait;opacity:.6}
+    a{color:inherit;text-decoration:none}button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #ac653f;outline-offset:3px}
+    .shell{max-width:380px;margin:auto;min-height:100vh}.top{display:flex;align-items:center;justify-content:space-between;padding:20px 19px 16px;border-bottom:1px solid var(--line)}.brand{display:flex;gap:8px;align-items:center;font-size:18px;font-weight:700;letter-spacing:-.7px}.mark{display:grid;place-items:center;width:27px;height:27px;border:1px solid var(--ink);border-radius:50%;font:25px Georgia}.tag{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted)}
+    .demo{background:#f2e5d8;color:#69492f;padding:8px 19px;font-size:10px}.intro{position:relative;overflow:hidden;background:var(--indigo);color:#faf5ed;padding:22px 20px 24px}.intro:after{content:'';width:170px;height:170px;border:1px solid #ffffff18;border-radius:50%;position:absolute;right:-85px;top:-45px;box-shadow:0 0 0 20px #ffffff05;pointer-events:none}.eyebrow{font-size:9px;letter-spacing:1.8px;text-transform:uppercase;color:#edbd9e}h1{font:normal 30px/1.1 Georgia,serif;letter-spacing:-.6px;margin:12px 0 10px}h1 em{color:#e5b294;font-weight:normal}.intro p{font-size:11px;color:#d7d2e1;margin:0;max-width:220px}
+    main{padding:17px 16px 12px}.context{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:0 2px 17px}.context-icon{background:#eae5ee;border-radius:9px;padding:8px 11px;color:#65577b;font-size:19px}.context small{display:block;color:var(--muted);font-size:9px;letter-spacing:1px;text-transform:uppercase}.context strong{display:block;max-width:205px;overflow-wrap:anywhere;font-size:12px;margin-top:2px}
+    .section-head{display:flex;justify-content:space-between;align-items:center;margin:19px 2px 10px}h2{font-size:12px;margin:0;font-weight:650}.count{font-size:10px;color:var(--muted)}fieldset{margin:0;padding:0;border:0}legend{padding:0;margin-bottom:10px;font-weight:650}.choice{position:relative;display:flex;gap:10px;align-items:flex-start;padding:13px 11px;border:1px solid var(--line);border-radius:9px;background:#fffdfa;margin-bottom:8px;cursor:pointer}.choice:has(input:checked){border-color:#716583;background:#ede9f2;box-shadow:inset 3px 0 #716583}.choice input{margin:3px 0 0;accent-color:#57506f;flex-shrink:0}.choice strong{font-size:11px;display:block}.choice small{display:block;color:#625d70;font-size:10px;margin-top:3px;line-height:1.5}.choice .glyph{margin-left:auto;color:#81738f;font-size:16px}.mode-note{font-size:10px;color:var(--muted);margin:8px 2px 17px}
+    .card{border:1px solid var(--line);background:#fffdfa;border-radius:10px;padding:13px;margin:12px 0}.status-line{display:flex;align-items:center;justify-content:space-between;gap:9px}.status-line strong{font-size:11px}.badge{background:#eeebf0;color:#625a6e;border-radius:20px;padding:3px 8px;font-size:9px;white-space:nowrap}.badge.on{background:#e5eee8;color:#335d44}.card p{font-size:10px;color:var(--muted);margin:6px 0 0}.checklist{list-style:none;padding:0;margin:10px 0 0}.checklist li{display:flex;gap:8px;font-size:10px;padding:5px 0;color:#645f70}.checklist li:before{content:'○';color:#9a744f}.checklist li.ready:before{content:'✓';color:#497356}.text-button{padding:0;border:0;background:none;color:#645477;text-decoration:underline;font-size:10px}.automation{display:flex;gap:9px;align-items:center;margin-top:13px;border-top:1px solid #eee9ef;padding-top:12px;font-size:11px;font-weight:600}.automation input{accent-color:#514668;width:15px;height:15px;margin:0}.automation small{font-weight:400;display:block;color:var(--muted);font-size:9px}
+    .primary{width:100%;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--indigo);border-radius:7px;background:var(--indigo);color:white;padding:12px 13px;font-size:11px;font-weight:600;transition:background .18s}.primary:hover{background:#4c4666}.share{border-top:3px solid #c99473}.share-head{display:flex;justify-content:space-between;align-items:center}.share-head span{color:#b37450;font-size:20px}.secondary{width:100%;border:1px solid #c9c1d2;background:transparent;border-radius:6px;padding:10px;font-size:11px;margin-top:11px;text-align:left;display:flex;justify-content:space-between}.secondary:hover{background:#f0eaf3}a[aria-disabled=true]{opacity:.5;pointer-events:none}.share input{width:100%;padding:8px;margin-top:5px;font-size:10px;color:#625c6e;border:1px solid #d4cddc;border-radius:5px;background:#faf8fc}.share label{display:block;font-size:10px;margin-top:12px}.share details{font-size:10px;margin-top:12px}.share summary{cursor:pointer;color:#625671}.save-url{margin-top:8px;padding:7px 10px;background:#eee8f2;border:1px solid #c9bfd3;border-radius:5px;color:#514360}.status{font-size:10px;overflow-wrap:anywhere;margin:12px 2px 4px;min-height:15px}.status.error{color:#9c3333}.footer{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding:13px 18px;color:var(--muted);font-size:9px}.footer a{text-decoration:underline}.hint{padding:0 2px 10px;color:#73677c;font-size:9px}.hidden,[hidden]{display:none!important}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <header class="top"><a class="brand" id="brandLink" href="website.html"><span class="mark" aria-hidden="true">◷</span>CommonTime</a><span class="tag">Organizer</span></header>
+  <div id="demo" class="demo" hidden>Design preview · sample settings, no calendar changes</div>
+  <section class="intro"><span class="eyebrow">A little less scheduling</span><h1>Good plans.<br><em>Common ground.</em></h1><p>Your form collects the possibilities.<br>Make room for what comes next.</p></section>
+  <main>
+<details id="ctmCreator" style="margin:18px 0;padding:14px;border:1px solid #ddd6e4;border-radius:12px;background:#faf8fc">
+<summary style="font-weight:700;cursor:pointer">Create a new Google Form ＋</summary>
+<p>Choose a template and calendar. Each new form gets its own scheduling trigger.</p>
+<form id="ctmForm">
+<label>Meeting title<input id="ctmTitle" required maxlength="100" value="Team planning session"></label>
+<label>Purpose<textarea id="ctmPurpose" maxlength="500" rows="2"></textarea></label>
+<label>Template<select id="ctmTemplate"><option value="standard">Flexible date and time windows</option><option value="strict_availability">Currently free calendar slots</option></select></label>
+<label>Duration<select id="ctmMinutes"><option>15</option><option selected>30</option><option>45</option><option>60</option></select></label>
+<label>Meeting type<select id="ctmMode"><option value="GROUP">One meeting for received responses</option><option value="SINGLE">One meeting per participant</option></select></label>
+<label>Availability window<select id="ctmDays"><option>7</option><option selected>14</option><option>30</option></select></label>
+<label>Time zone<select id="ctmZone"><option>America/New_York</option><option>America/Chicago</option><option>America/Denver</option><option>America/Los_Angeles</option><option>Europe/London</option><option>UTC</option></select></label>
+<label>Calendar<select id="ctmCalendar" required><option value="">Loading calendars…</option></select></label>
+<p style="font-size:11px">Calendars you own, including those you share. Scheduling runs after each response; later group responses may move the meeting. Flexible responses are grouped by date. Participants only need the link.</p>
+<button id="ctmCreate" type="submit" disabled>Create Google Form &amp; connect</button>
+</form><p id="ctmStatus" role="status"></p><div id="ctmResult" hidden><a id="ctmEdit" target="_blank" rel="noopener">Edit the new Google Form ↗</a><p><a id="ctmContinue" target="_blank" rel="noopener">Continue in CommonTime →</a></p><small>Continue to save this form’s participant page and copy its link.</small></div>
+</details>
+<script>
+(function(){
+const $=id=>document.getElementById(id);let loaded=false,requestId='';
+const rpc=(name,arg)=>new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[name](arg));
+$('ctmCreator').addEventListener('toggle',async()=>{if(!$('ctmCreator').open||loaded)return;try{if(typeof google==='undefined'||!google.script)throw Error('Open this creator inside Google Forms to connect your account.');const data=await rpc('CTM_listCalendars');$('ctmCalendar').replaceChildren(...data.calendars.map(c=>{const o=document.createElement('option');o.value=c.id;o.textContent=c.name+(c.primary?' · primary':'');o.selected=c.primary;return o;}));loaded=true;$('ctmCreate').disabled=!data.calendars.length;$('ctmStatus').textContent=data.calendars.length?'Choose your settings, then create.':'No owned calendars found.';}catch(e){$('ctmStatus').textContent=e.message;}});
+$('ctmForm').addEventListener('input',()=>{requestId='';});
+$('ctmForm').addEventListener('submit',async e=>{e.preventDefault();$('ctmCreate').disabled=true;$('ctmStatus').textContent='Creating your Google Form and connecting its calendar…';requestId=requestId||('ctm-'+Date.now()+'-'+Math.random().toString(36).slice(2));try{const r=await rpc('CTM_createForm',{title:$('ctmTitle').value,purpose:$('ctmPurpose').value,template:$('ctmTemplate').value,minutes:Number($('ctmMinutes').value),mode:$('ctmMode').value,days:Number($('ctmDays').value,10),timezone:$('ctmZone').value,calendarId:$('ctmCalendar').value,requestId});$('ctmEdit').href=r.editUrl;$('ctmContinue').href=r.continueUrl;$('ctmResult').hidden=false;$('ctmStatus').textContent='Google Form created. Its submit trigger is connected to your selected calendar.';}catch(error){$('ctmStatus').textContent=error.message;}finally{$('ctmCreate').disabled=false;}});
+})();
+</script>
+
+    <div class="context"><span class="context-icon" aria-hidden="true">▤</span><div><small>Connected form</small><strong id="formTitle">Connecting to your form…</strong></div></div>
+    <form id="settingsForm">
+      <div class="section-head"><h2>01 · Make a plan</h2><span class="count">Meeting type</span></div>
+      <fieldset aria-label="Meeting type" disabled id="modeFields">
+        <label class="choice"><input type="radio" name="mode" value="GROUP" checked><span><strong>One time, together</strong><small>Find a shared window for the group.</small></span><span class="glyph" aria-hidden="true">◎</span></label>
+        <label class="choice"><input type="radio" name="mode" value="SINGLE"><span><strong>A moment for everyone</strong><small>Create a separate event per respondent.</small></span><span class="glyph" aria-hidden="true">◷</span></label>
+      </fieldset>
+      <p class="mode-note" id="modeNote">Choose how new responses become meetings.</p>
+      <button class="primary" id="saveMode" type="submit" disabled><span>Save meeting type</span><span aria-hidden="true">↗</span></button>
+    </form>
+    <section class="card" aria-labelledby="setupHeading">
+      <div class="status-line"><strong id="setupHeading">02 · Scheduling setup</strong><span class="badge" id="automationBadge">Checking</span></div>
+      <p>30-minute meetings · Eastern time. Group meetings combine responses for each date.</p><p id="lastResult" role="status">No new response processed yet.</p>
+      <ul class="checklist"><li id="emailCheck">Checking email collection</li><li id="keyCheck">Checking scheduling fields</li><li id="zoneCheck">Checking time zone</li></ul>
+      <button class="text-button" id="refresh" type="button" disabled>Refresh setup</button>
+      <label class="automation"><input id="enabled" type="checkbox" disabled><span>Schedule automatically<small>For triggers installed by your account</small></span></label>
+      <p>Enabling this may send calendar invitations when a response arrives.</p>
+    </section>
+    <section class="card share" aria-labelledby="shareHeading">
+      <div class="share-head"><h2 id="shareHeading">03 · Bring everyone here</h2><span aria-hidden="true">↗</span></div>
+      <p>Share your website with this form already selected.</p>
+      <a class="secondary" id="websiteLink" href="website.html" target="_blank" rel="noopener noreferrer" aria-disabled="true">Open connected website <span aria-hidden="true">↗</span></a>
+      <button class="secondary" id="copyLink" type="button" disabled>Copy website invite <span aria-hidden="true">⧉</span></button>
+      <label id="inviteLabel" hidden>Website invite<input id="inviteValue" readonly aria-label="Website invite URL"></label>
+      <p id="websiteNote">Add your website address below to connect it.</p>
+      <details id="websiteSettings"><summary>Website connection</summary><label for="websiteUrl">Website address</label><input id="websiteUrl" type="url" placeholder="https://your-website.com/website.html"><button id="saveWebsite" class="save-url" type="button" disabled>Save connection</button><p>For local preview: http://127.0.0.1:4173/website.html. Use a published HTTPS address for guests.</p></details>
+    </section>
+    <p class="status" id="status" role="status" aria-live="polite">Loading your settings…</p>
+    <p class="hint" id="previewHint" hidden>Preview controls simulate saved settings. Google authorization is needed in the installed add-on.</p>
+  </main>
+  <footer class="footer"><span>Time, well spent.</span><a id="formLink" target="_blank" rel="noopener noreferrer" hidden>Preview form ↗</a></footer>
+</div>
+<script>
+(() => {
+  const el = id => document.getElementById(id);
+  const live = !!(window.google && google.script && google.script.run);
+  const defaultForm = 'https://docs.google.com/forms/d/e/1FAIpQLSf59JOX8omkBsZxEjvzt8Jitqaen0rKoMUNG51zrUbcwPSBSg/viewform';
+  let state, invite = '', busy = false;
+  let preview = {title:'CommonTime · Availability',mode:'GROUP',enabled:false,collectsEmail:true,schedulerReady:false,timezone:'America/New_York',formUrl:defaultForm,websiteUrl:new URL('website.html',location.href).href};
+  function message(text,error=false){el('status').textContent=text;el('status').classList.toggle('error',error);}
+  function rpc(method,arg){
+    if(live) return new Promise((resolve,reject)=>{const runner=google.script.run.withSuccessHandler(resolve).withFailureHandler(reject);arg===undefined?runner[method]():runner[method](arg);});
+    return new Promise((resolve,reject)=>setTimeout(()=>{
+      if(method==='saveSidebarSettings'){
+        try{if(arg.websiteUrl){const u=new URL(arg.websiteUrl);if(u.protocol!=='https:' && !(u.protocol==='http:' && ['localhost','127.0.0.1'].includes(u.hostname)))throw Error('Use HTTPS or a localhost URL.');}}catch(e){reject(e);return;}
+        preview={...preview,...arg};
+      }
+      if(method==='setSidebarEnabled'){if(arg&&!preview.schedulerReady){reject(Error('Add gemini_api_key in Apps Script project settings first.'));return;}preview.enabled=arg;}
+      resolve({...preview});
+    },250));
+  }
+  function validForm(value){try{const u=new URL(value);return u.protocol==='https:'&&u.hostname==='docs.google.com'&&/^\/forms\/d\/(?:e\/)?[\w-]+\/viewform$/.test(u.pathname);}catch{return false;}}
+  function connect(){
+    invite='';
+    if(state.websiteUrl&&validForm(state.formUrl)){
+      try{const url=new URL(state.websiteUrl);if(url.protocol!=='https:'&&!(url.protocol==='http:'&&['127.0.0.1','localhost'].includes(url.hostname)))throw Error('Invalid URL');url.searchParams.set('form',state.formUrl);url.hash='availability';invite=url.href;}catch{}
+    }
+    el('websiteLink').setAttribute('aria-disabled',String(!invite));
+    if(invite){el('websiteLink').href=invite;el('brandLink').href=state.websiteUrl;}
+    else{el('websiteLink').removeAttribute('href');el('brandLink').removeAttribute('href');}
+    el('copyLink').disabled=!invite;el('inviteValue').value=invite;el('inviteLabel').hidden=true;
+    el('websiteNote').textContent=!invite?'Save your website address to create an invite.':new URL(invite).protocol==='http:'?'Local preview connected · guests need a published website URL.':'Connected · invites open this form on your website.';
+  }
+  function render(next){
+    state=next;el('formTitle').textContent=state.title;
+    document.querySelectorAll('[name=mode]').forEach(input=>input.checked=input.value===state.mode);
+    el('websiteUrl').value=state.websiteUrl;
+    el('enabled').checked=state.enabled;el('automationBadge').textContent=state.enabled?'Active':'Paused';el('automationBadge').classList.toggle('on',state.enabled);
+    [['emailCheck',state.collectsEmail,'Email addresses collected','Collect email addresses in Forms settings'],['keyCheck',state.schedulerReady,'Date and time fields ready','Prepare date and time fields in Apps Script'],['zoneCheck',true,'Time zone · '+state.timezone,'']].forEach(([id,ready,yes,no])=>{el(id).textContent=ready?yes:no;el(id).classList.toggle('ready',ready);});
+    el('enabled').disabled=!state.enabled&&(!state.collectsEmail||!state.schedulerReady);
+    if(validForm(state.formUrl)){el('formLink').href=state.formUrl;el('formLink').hidden=false;}
+    connect();
+    el('lastResult').textContent=state.lastResult||'No new response processed yet.';
+    el('modeNote').textContent='Saved · '+(state.mode==='GROUP'?'One shared meeting for the group.':'A separate event per respondent.');
+  }
+  async function action(method,arg,success){
+    if(busy)return;busy=true;
+    ['saveMode','saveWebsite','refresh','enabled','modeFields'].forEach(id=>el(id).disabled=true);
+    message('Working…');
+    try{render(await rpc(method,arg));message(success);}catch(error){message(error.message||String(error),true);}
+    finally{busy=false;['saveMode','saveWebsite','refresh','modeFields'].forEach(id=>el(id).disabled=!state);el('enabled').checked=!!state?.enabled;el('enabled').disabled=!state||(!state.enabled&&(!state.collectsEmail||!state.schedulerReady));}
+  }
+  el('settingsForm').addEventListener('submit',event=>{event.preventDefault();action('saveSidebarSettings',{mode:document.querySelector('[name=mode]:checked').value,websiteUrl:state.websiteUrl},'Meeting type saved. Applies to new responses.');});
+  document.querySelectorAll('[name=mode]').forEach(input=>input.addEventListener('change',()=>{el('modeNote').textContent='Unsaved change · save to apply.';}));
+  el('saveWebsite').addEventListener('click',()=>action('saveSidebarSettings',{mode:state.mode,websiteUrl:el('websiteUrl').value.trim()},'Website connection saved.'));
+  el('enabled').addEventListener('change',()=>action('setSidebarEnabled',el('enabled').checked,'Automation setting updated.'));
+  el('refresh').addEventListener('click',()=>action('getSidebarState',undefined,'Setup refreshed.'));
+  el('copyLink').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(invite);message('Website invite copied.');}catch{el('inviteLabel').hidden=false;el('inviteValue').focus();el('inviteValue').select();message('Select and copy the invite above.');}});
+  if(!live){el('demo').hidden=false;el('previewHint').hidden=false;}
+  action('getSidebarState',undefined,live?'Settings loaded.':'Preview ready · settings here are simulated.');
+})();
+</script>
+</body>
+</html>

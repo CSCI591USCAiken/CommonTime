@@ -236,6 +236,7 @@ function handleGroupEvent(eventData) {
     const submissions = JSON.parse(docProps.getProperty(submissionKey) || '{}');
     const identifier = eventData.guestEmail || ('anonymous_' + Date.now());
 
+    // 1. Save this submission immediately
     submissions[identifier] = {
         startTime: eventData.startTime,
         endTime: eventData.endTime,
@@ -245,10 +246,44 @@ function handleGroupEvent(eventData) {
     };
     docProps.setProperty(submissionKey, JSON.stringify(submissions));
 
+    // 2. Remove any previously scheduled delayed triggers so we debounce/reset the timer
+    removeGroupProcessingTriggers();
+
+    // 3. Schedule a new one-shot trigger to process the group after the delay
+    const delayMinutes = getGroupEventDelayMinutes();
+    ScriptApp.newTrigger('processQueuedGroupEvent')
+        .timeBased()
+        .after(delayMinutes * 60 * 1000)
+        .create();
+
+    Logger.log("Group submission recorded for " + identifier + ". Scheduled group calculation in " + delayMinutes + " minute(s).");
+}
+
+function removeGroupProcessingTriggers() {
+    ScriptApp.getProjectTriggers().forEach(function (trigger) {
+        if (trigger.getHandlerFunction() === 'processQueuedGroupEvent') {
+            ScriptApp.deleteTrigger(trigger);
+        }
+    });
+}
+
+function processQueuedGroupEvent() {
+    Logger.log("Processing queued group event calculations...");
+    const docProps = getProps();
+    const submissionKey = "ALL_GROUP_SUBMISSIONS";
+    const submissions = JSON.parse(docProps.getProperty(submissionKey) || '{}');
     const allSubmissions = Object.values(submissions);
-    
+
+    if (allSubmissions.length === 0) {
+        Logger.log("No group submissions found to process.");
+        return;
+    }
+
     const bestFit = calculateBestFitScored(allSubmissions);
-    if (!bestFit) return;
+    if (!bestFit) {
+        Logger.log("Could not find a suitable best fit time slot for the group.");
+        return;
+    }
 
     const guests = Array.from(new Set(
         allSubmissions.map(function (submission) { return submission.guestEmail; })
@@ -289,8 +324,15 @@ function handleGroupEvent(eventData) {
         docProps.setProperty(groupEventIdKey, masterEvent.getId());
     }
 
-    notifyEventRecipients(getNotificationEmails(eventData), meetingTitle,
-        bestFit.startTime, bestFit.endTime);
+    // Notify all collected guests about the finalized/updated group slot
+    const allNotificationEmails = Array.from(new Set(
+        allSubmissions.map(function (s) { return s.guestEmail; }).filter(Boolean)
+    ));
+    const publisherEmail = docProps.getProperty('PUBLISHER_EMAIL');
+    if (publisherEmail) allNotificationEmails.push(publisherEmail);
+
+    notifyEventRecipients(allNotificationEmails, meetingTitle, bestFit.startTime, bestFit.endTime);
+    Logger.log("Group event successfully processed and calendar updated.");
 }
 
 /**
@@ -325,7 +367,7 @@ function calculateBestFitScored(subList) {
         let currentSlotEnd = new Date(currentSlotStart.getTime() + slotDurationMs);
 
         // 1. Check Publisher Conflict
-        const publisherBusy = publisherEvents.some(ev => 
+        const publisherBusy = publisherEvents.some(ev =>
             currentSlotStart < ev.getEndTime() && currentSlotEnd > ev.getStartTime()
         );
 
@@ -337,7 +379,7 @@ function calculateBestFitScored(subList) {
             subList.forEach(sub => {
                 const subStart = new Date(sub.startTime).getTime();
                 const subEnd = new Date(sub.endTime).getTime();
-                
+
                 // Check if this slot falls within the respondent's stated availability
                 if (currentSlotStart.getTime() >= subStart && currentSlotEnd.getTime() <= subEnd) {
                     matchingRespondents++;
@@ -372,8 +414,11 @@ function calculateBestFitScored(subList) {
     }
 
     if (scoredSlots.length === 0) {
-        Logger.log("No scored slots found matching publisher availability and respondents. Falling back to default intersection.");
-        return calculateBestFit(subList); // Fallback to your original logic
+        Logger.log("No scored slots found. Falling back to the first respondent's time range.");
+        return {
+            startTime: subList[0].startTime,
+            endTime: subList[0].endTime
+        };
     }
 
     // Sort by highest score descending
@@ -381,6 +426,17 @@ function calculateBestFitScored(subList) {
 
     Logger.log("Best scored time slot selected: " + JSON.stringify(scoredSlots[0]));
     return scoredSlots[0];
+}
+
+/**
+ * Returns the group event processing delay in minutes.
+ * Change this to 1 (or fractions/seconds via milliseconds) during testing, 
+ * and increase it once out of testing (e.g., 60 minutes or 1440 for 24 hours).
+ */
+function getGroupEventDelayMinutes() {
+    const isTesting = getProps().getProperty('IS_TESTING_MODE') !== 'false';
+    // During testing: 1 minute (~60 seconds). Out of testing: e.g., 60 minutes or longer.
+    return isTesting ? 1 : 60;
 }
 
 /**

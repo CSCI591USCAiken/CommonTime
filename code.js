@@ -434,9 +434,7 @@ function calculateBestFitScored(subList) {
  * and increase it once out of testing (e.g., 60 minutes or 1440 for 24 hours).
  */
 function getGroupEventDelayMinutes() {
-    const isTesting = getProps().getProperty('IS_TESTING_MODE') !== 'false';
-    // During testing: 1 minute (~60 seconds). Out of testing: e.g., 60 minutes or longer.
-    return isTesting ? 1 : 60;
+    return 1;
 }
 
 /**

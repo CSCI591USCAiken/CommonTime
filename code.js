@@ -209,8 +209,13 @@ function handleIndEvent(eventData) {
     if (existingEventId) {
         try {
             calendarEvent = cal.getEventById(existingEventId);
+            if(!calendarEvent){
+                // If event was deleted/removed from calendar
+                docProps.deleteProperty(emailKey);
+            }
         } catch (err) {
             Logger.log("Could not retrieve existing event; creating a replacement.");
+            docProps.deleteProperty(emailKey);
         }
     }
 
@@ -305,8 +310,12 @@ function processQueuedGroupEvent() {
     if (masterEventId) {
         try {
             masterEvent = cal.getEventById(masterEventId);
+            if(!masterEvent){
+                docProps.deleteProperty(groupEventIdKey);
+            }
         } catch (err) {
             Logger.log("Could not retrieve group event; creating a replacement.");
+            docProps.deleteProperty(groupEventIdKey);
         }
     }
 

@@ -9,6 +9,7 @@
 
 // Safe property store helper to prevent null errors during manual tests
 function getProps() {
+    if (CT_FORM_CONTEXT_) return websiteFormProps_(CT_FORM_CONTEXT_);
     return PropertiesService.getDocumentProperties() || PropertiesService.getScriptProperties();
 }
 
@@ -102,7 +103,7 @@ function removeExistingTriggers(formId) {
  * Main entry point triggered when a user submits a form. Extracts text, 
  * queries Gemini AI to parse dates, and dispatches to calendar handlers.
  */
-function onFormSubmit(e) {
+function processFormSubmission_(e) {
     Logger.log("CommonTime form-submit handler started.");
     try {
         if (!e || !e.response) {
@@ -251,23 +252,28 @@ function handleGroupEvent(eventData) {
 
     // 3. Schedule a new one-shot trigger to process the group after the delay
     const delayMinutes = getGroupEventDelayMinutes();
-    ScriptApp.newTrigger('processQueuedGroupEvent')
+    const scheduledTrigger = ScriptApp.newTrigger('processQueuedGroupEvent')
         .timeBased()
         .after(delayMinutes * 60 * 1000)
         .create();
+    if (CT_FORM_CONTEXT_) PropertiesService.getScriptProperties().setProperty('CT_GROUP_TRIGGER_' + scheduledTrigger.getUniqueId(), CT_FORM_CONTEXT_);
 
     Logger.log("Group submission recorded for " + identifier + ". Scheduled group calculation in " + delayMinutes + " minute(s).");
 }
 
 function removeGroupProcessingTriggers() {
     ScriptApp.getProjectTriggers().forEach(function (trigger) {
-        if (trigger.getHandlerFunction() === 'processQueuedGroupEvent') {
+        const store = PropertiesService.getScriptProperties();
+        const key = 'CT_GROUP_TRIGGER_' + trigger.getUniqueId();
+        const owner = store.getProperty(key);
+        if (trigger.getHandlerFunction() === 'processQueuedGroupEvent' && (CT_FORM_CONTEXT_ ? owner === CT_FORM_CONTEXT_ : !owner)) {
             ScriptApp.deleteTrigger(trigger);
+            store.deleteProperty(key);
         }
     });
 }
 
-function processQueuedGroupEvent() {
+function processQueuedGroupEvent_() {
     Logger.log("Processing queued group event calculations...");
     const docProps = getProps();
     const submissionKey = "ALL_GROUP_SUBMISSIONS";
@@ -587,7 +593,12 @@ function getAvailableTemplates() {
 
 function applyTemplate(templateId) {
     const form = FormApp.getActiveForm();
+    return applyTemplateToForm_(form, templateId);
+}
+
+function applyTemplateToForm_(form, templateId) {
     if (!form) throw new Error("Could not detect the active form.");
+    if (!['standard', 'strict_availability'].includes(templateId)) throw new Error('Unknown form template.');
 
     const items = form.getItems();
     items.forEach(item => form.deleteItem(item));

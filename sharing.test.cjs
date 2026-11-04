@@ -1,0 +1,25 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
+const values=new Map(),forms=[],sync=[];const store={getProperty:k=>values.get(k)||null,setProperty:(k,v)=>values.set(k,v),deleteProperty:k=>values.delete(k)};
+const c=vm.createContext({PropertiesService:{getScriptProperties:()=>store,getDocumentProperties:()=>null},LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},console});
+vm.runInContext(fs.readFileSync('code.js','utf8')+'\n'+fs.readFileSync('website-sharing.js','utf8'),c);
+function form(id,title){let name=title,published=false,accepting=false,description='';return {getId:()=>id,getTitle:()=>name,setTitle:v=>name=v,getDescription:()=>description,setDescription:v=>description=v,getPublishedUrl:()=> 'https://docs.google.com/forms/d/e/'+id+'/viewform',getEditUrl:()=> 'https://docs.google.com/forms/d/'+id+'/edit',isPublished:()=>published,setPublished:v=>published=v,isAcceptingResponses:()=>accepting,setAcceptingResponses:v=>accepting=v};}
+c.FormApp={create:title=>{const f=form('form'+(forms.length+1),title);forms.push(f);return f;},openById:id=>forms.find(f=>f.getId()===id),getActiveForm:()=>forms[0]};
+c.applyTemplateToForm_=(f,t)=>{assert.equal(c.CT_FORM_CONTEXT_,f.getId());c.getProps().setProperty('ACTIVE_TEMPLATE',t);};
+c.toggleTriggerOn=id=>{sync.push(id);c.getProps().setProperty('PUBLISHER_EMAIL','host@example.invalid');};
+const input={title:'Planning & coffee',purpose:'Find a time',mode:'GROUP',templateId:'standard',requestId:'request-one'};
+const a=c.createWebsiteMeetingForm(input),b=c.createWebsiteMeetingForm({...input,title:'Another meeting',requestId:'request-two'});
+assert.notEqual(a.formId,b.formId);assert.equal(forms.length,2);assert.equal(sync.length,2);
+assert.equal(c.createWebsiteMeetingForm(input).formId,a.formId);assert.equal(forms.length,2);
+assert.equal(a.published,true);assert.equal(a.acceptingResponses,true);
+const u=new URL(a.participantUrl);assert.equal(u.origin,'https://stingingend.github.io');assert.equal(u.pathname,'/commontime-scheduler/forms.html');assert.equal(u.searchParams.get('form'),a.respondentUrl);assert.equal(u.searchParams.get('title'),input.title);
+assert(!a.participantUrl.includes('PUBLISHER_EMAIL'));assert.equal(new URL(a.organizerUrl).searchParams.get('created_form'),a.respondentUrl);
+assert.throws(()=>c.createWebsiteMeetingForm({...input,templateId:'bad'}));assert.equal(forms.length,2);
+c.withWebsiteForm_(a.formId,()=>c.getProps().setProperty('ALL_GROUP_SUBMISSIONS','A'));
+c.withWebsiteForm_(b.formId,()=>assert.equal(c.getProps().getProperty('ALL_GROUP_SUBMISSIONS'),null));
+let context;c.processFormSubmission_=()=>{context=c.CT_FORM_CONTEXT_;};c.onFormSubmit({source:{getId:()=>a.formId}});assert.equal(context,a.formId);assert.equal(c.CT_FORM_CONTEXT_,null);
+c.onFormSubmit({source:{getId:()=> 'legacy'}});assert.equal(context,null);
+store.setProperty('CT_GROUP_TRIGGER_jobA',a.formId);c.processQueuedGroupEvent_=()=>{context=c.CT_FORM_CONTEXT_;};c.processQueuedGroupEvent({triggerUid:'jobA'});assert.equal(context,a.formId);assert.equal(store.getProperty('CT_GROUP_TRIGGER_jobA'),null);
+assert.throws(()=>c.withWebsiteForm_('test',()=>{throw Error('failure');}));assert.equal(c.CT_FORM_CONTEXT_,null);
+const deleted=[];c.ScriptApp={getProjectTriggers:()=>['ours','other','legacy'].map(id=>({getUniqueId:()=>id,getHandlerFunction:()=> 'processQueuedGroupEvent'})),deleteTrigger:t=>deleted.push(t.getUniqueId())};store.setProperty('CT_GROUP_TRIGGER_ours',a.formId);store.setProperty('CT_GROUP_TRIGGER_other',b.formId);c.withWebsiteForm_(a.formId,c.removeGroupProcessingTriggers);assert.deepEqual(deleted,['ours']);
+store.setProperty('COMMONTIME_WEBSITE_URL','javascript:alert(1)');assert.throws(()=>c.websiteBase_());
+console.log('Sharing checks passed: creation, retry, exact form URLs, public metadata, per-form settings, submit dispatch, delayed queue isolation, and invalid website rejection.');

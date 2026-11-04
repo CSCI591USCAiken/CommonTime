@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {StaticPages} from './static-pages.mjs';
+const memory=new Map(),storage={getItem:k=>memory.get(k),setItem:(k,v)=>memory.set(k,v)},api=new StaticPages(storage);
+const data={title:'Planning & ideas',purpose:'Hello everyone',formUrl:'https://docs.google.com/forms/d/e/ExampleA/viewform'};
+const a=await api.create(data),b=await api.create({...data,formUrl:data.formUrl.replace('ExampleA','ExampleB')});
+assert.notEqual(a.page.path,b.page.path);assert.equal((await api.create(data)).created,false);
+assert.equal((await new StaticPages(storage).list()).length,2);
+const url=new URL(a.page.path,'https://example.github.io/commontime-scheduler/');
+assert.equal(url.pathname,'/commontime-scheduler/forms.html');assert.equal(url.searchParams.get('form'),data.formUrl);assert.equal(url.searchParams.get('title'),data.title);
+await assert.rejects(api.create({...data,formUrl:'https://evil.example/viewform'}));
+await assert.rejects(api.create({...data,title:''}));
+assert.equal((await new StaticPages({getItem:()=>'{bad'}).list()).length,0);
+await assert.rejects(new StaticPages({getItem:()=>null,setItem:()=>{throw Error();}}).create(data),/storage/);
+console.log('10 static hosting checks passed.');

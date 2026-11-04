@@ -16,9 +16,9 @@ $fullCommitMessage = "$JiraIssueKey $CommitMessage"
 git commit -m $fullCommitMessage
 
 Write-Host "3/3 Pushing to GitHub (triggers Jira update)..." -ForegroundColor Cyan
-git push origin main
+git push origin KAN-13-prototype
 
 Write-Host "Done! Apps Script, GitHub, and Jira have all been updated." -ForegroundColor Green
 
 
-# powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -JiraIssueKey "KAN-19" -CommitMessage "Implemented auth sync script"
+# powershell -ExecutionPolicy Bypass -File .\deploy.ps1 -JiraIssueKey "KAN-13" -CommitMessage "Implemented auth sync script"

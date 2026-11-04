@@ -43,6 +43,7 @@ function createWebsiteMeetingForm(input) {
     if (!input || typeof input.title !== 'string' || !input.title.trim() || input.title.trim().length > 100) throw new Error('Enter a meeting title of up to 100 characters.');
     if (!['standard', 'strict_availability'].includes(input.templateId)) throw new Error('Choose a supported template.');
     if (!['SINGLE', 'GROUP'].includes(input.mode)) throw new Error('Choose a scheduling mode.');
+    const minimumResponses = validateMinimumResponses_(input.minimumResponses == null ? 1 : input.minimumResponses);
     if (!/^[a-zA-Z0-9-]{8,80}$/.test(input.requestId || '')) throw new Error('Reopen the creator and try again.');
     const base = websiteBase_(), store = PropertiesService.getScriptProperties(), lock = LockService.getScriptLock();
     lock.waitLock(30000);
@@ -54,6 +55,7 @@ function createWebsiteMeetingForm(input) {
             form = FormApp.create(input.title.trim(), false);
             withWebsiteForm_(form.getId(), function () {
                 setScheduleMode(input.mode);
+                if (minimumResponses > 1) saveResponseGateForForm_(form, minimumResponses);
                 applyTemplateToForm_(form, input.templateId);
                 form.setTitle(input.title.trim());
                 form.setDescription(String(input.purpose || '').trim().slice(0, 500));
@@ -78,15 +80,19 @@ function createWebsiteMeetingForm(input) {
 function onFormSubmit(e) {
     const id = e && e.source && e.source.getId();
     if (id && PropertiesService.getScriptProperties().getProperty('CT_WEBSITE_FORM_' + id)) {
-        return withWebsiteForm_(id, function () { return processFormSubmission_(e); });
+        return withWebsiteForm_(id, function () { return dispatchResponseGate_(e); });
     }
-    return processFormSubmission_(e);
+    return dispatchResponseGate_(e);
+}
+function runQueuedGroupWithGate_() {
+    if (!responseGateCanSchedule_()) return;
+    return processQueuedGroupEvent_();
 }
 function processQueuedGroupEvent(e) {
     const store = PropertiesService.getScriptProperties(), key = e && e.triggerUid ? 'CT_GROUP_TRIGGER_' + e.triggerUid : null;
     const id = key && store.getProperty(key);
     if (id) {
-        try { return withWebsiteForm_(id, processQueuedGroupEvent_); } finally { store.deleteProperty(key); }
+        try { return withWebsiteForm_(id, runQueuedGroupWithGate_); } finally { store.deleteProperty(key); }
     }
-    return processQueuedGroupEvent_();
+    return runQueuedGroupWithGate_();
 }

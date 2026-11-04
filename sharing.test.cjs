@@ -1,8 +1,8 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const values=new Map(),forms=[],sync=[];const store={getProperty:k=>values.get(k)||null,setProperty:(k,v)=>values.set(k,v),deleteProperty:k=>values.delete(k)};
 const c=vm.createContext({PropertiesService:{getScriptProperties:()=>store,getDocumentProperties:()=>null},LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},console});
-vm.runInContext(fs.readFileSync('code.js','utf8')+'\n'+fs.readFileSync('website-sharing.js','utf8'),c);
-function form(id,title){let name=title,published=false,accepting=false,description='';return {getId:()=>id,getTitle:()=>name,setTitle:v=>name=v,getDescription:()=>description,setDescription:v=>description=v,getPublishedUrl:()=> 'https://docs.google.com/forms/d/e/'+id+'/viewform',getEditUrl:()=> 'https://docs.google.com/forms/d/'+id+'/edit',isPublished:()=>published,setPublished:v=>published=v,isAcceptingResponses:()=>accepting,setAcceptingResponses:v=>accepting=v};}
+vm.runInContext(fs.readFileSync('code.js','utf8')+'\n'+fs.readFileSync('website-sharing.js','utf8')+'\n'+fs.readFileSync('response-gate.js','utf8'),c);
+function form(id,title){let name=title,published=false,accepting=false,description='';return {getId:()=>id,getTitle:()=>name,setTitle:v=>name=v,getDescription:()=>description,setDescription:v=>description=v,getPublishedUrl:()=> 'https://docs.google.com/forms/d/e/'+id+'/viewform',getEditUrl:()=> 'https://docs.google.com/forms/d/'+id+'/edit',getResponses:()=>[],isPublished:()=>published,setPublished:v=>published=v,isAcceptingResponses:()=>accepting,setAcceptingResponses:v=>accepting=v};}
 c.FormApp={create:title=>{const f=form('form'+(forms.length+1),title);forms.push(f);return f;},openById:id=>forms.find(f=>f.getId()===id),getActiveForm:()=>forms[0]};
 c.applyTemplateToForm_=(f,t)=>{assert.equal(c.CT_FORM_CONTEXT_,f.getId());c.getProps().setProperty('ACTIVE_TEMPLATE',t);};
 c.toggleTriggerOn=id=>{sync.push(id);c.getProps().setProperty('PUBLISHER_EMAIL','host@example.invalid');};

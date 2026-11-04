@@ -14,9 +14,21 @@ For an existing form, use **Publish current form & get link**, or refresh its li
 
 ## Apps Script setup
 
+## Wait for a response target
+
+The sidebar includes **Wait for enough responses**. Turn on **Wait before scheduling**, enter a whole number up to 500, and save. With the hold off, scheduling continues as each response arrives. New forms inherit the choice shown in this control; the form title below it identifies which existing form the Save button updates. After creating a form, the control switches to that new form. Use **Use current open form** to switch back.
+
+The hold counts distinct collected email addresses starting when it is first saved, excluding historical submissions. Repeated submissions from one email count once, using that person's latest response. Below the target, form submission processing does not call Gemini, calendar event creation, or confirmation email functions. When the target is met, the held responses are released. Single mode processes individual meetings; Group mode uses its existing aggregation and delay. A pending group timer also checks the hold before changing the calendar.
+
+Saving or lowering a target does not itself send anything; the next response checks the target and releases the backlog when eligible. After release, later submissions run normally. The target cannot be reset after release: create another form for another collection round. Already-created calendar events and previously sent emails are not recalled. The count describes collected responses, not guaranteed successful parsing or bookings. Failed responses are reported in Apps Script executions and retried on a subsequent submission, while successful responses are skipped using stored receipts.
+
+**Refresh response count** shows progress. This prototype reads the response list and processes held respondents within the Apps Script execution limit; large batches may need a later submission/retry or organizer review. No real events or emails were sent during automated checks.
+
+## Apps Script installation
+
 The project linked for this work is `CommonTimeTest`: https://script.google.com/home/projects/1BUnS8JToXN12d3wMAdqzN61gO_Se64oKLgiFHyIoTJgGNj6Xwng9eRVS/edit
 
-Install `code.js`, `website-sharing.js`, `Sidebar.html`, `minimal-trigger-test.js`, and `appsscript.json` in the development project. The HTML filename is **Sidebar**, matching `showSidebar()`. Both JavaScript files are required: `website-sharing.js` supplies the trigger entry points and form-specific property context.
+Install `code.js`, `website-sharing.js`, `response-gate.js`, `Sidebar.html`, `minimal-trigger-test.js`, and `appsscript.json` in the development project. The HTML filename is **Sidebar**, matching `showSidebar()`. All three JavaScript implementation files are required: `website-sharing.js` supplies trigger entry points and form-specific property context, while `response-gate.js` controls the response hold.
 
 `.claspignore` excludes website assets and Node tests from Apps Script uploads. Keep `gemini_api_key` in Script Properties; never put it in source or participant URLs. Set optional Script Property `COMMONTIME_WEBSITE_URL` to the deployed website directory. Default: `https://stingingend.github.io/commontime-scheduler/`.
 
@@ -34,4 +46,4 @@ The host’s form list stays in that browser’s local storage. It is not a sign
 
 ## Verification
 
-Run `node sharing.test.cjs` and `node website/static-pages.test.mjs`. These check creation retries, exact per-form participant links, public metadata, per-form stores, submit dispatch, delayed trigger isolation, and static link portability. They mock Google services and send no responses, mail, or calendar invitations. A real calendar submission still needs verification in the authorized test deployment.
+Run `node sharing.test.cjs`, `node response-gate.test.cjs`, and `node website/static-pages.test.mjs`. These check creation retries, exact per-form participant links, public metadata, per-form stores, submit dispatch, delayed trigger isolation, static link portability, and response targets. Gate checks cover no actions below target, repeated emails, backlog release, later responses, validation, separate forms, historical responses, retries, and the delayed Group guard. They mock Google services and send no responses, mail, or calendar invitations. A real calendar submission still needs verification in the authorized test deployment.

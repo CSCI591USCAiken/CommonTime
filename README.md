@@ -47,3 +47,13 @@ The host’s form list stays in that browser’s local storage. It is not a sign
 ## Verification
 
 Run `node sharing.test.cjs`, `node response-gate.test.cjs`, and `node website/static-pages.test.mjs`. These check creation retries, exact per-form participant links, public metadata, per-form stores, submit dispatch, delayed trigger isolation, static link portability, and response targets. Gate checks cover no actions below target, repeated emails, backlog release, later responses, validation, separate forms, historical responses, retries, and the delayed Group guard. They mock Google services and send no responses, mail, or calendar invitations. A real calendar submission still needs verification in the authorized test deployment.
+
+## Gemini verification
+
+Gemini runs in Apps Script when the embedded Google Form is submitted; the static website never receives the API key. Set Script Property `gemini_api_key` in the Apps Script project. Optional `gemini_model` overrides the default `gemini-3.5-flash-lite`. Fallbacks are `gemini-3.8-flash` and `gemini-2.5-flash-lite`, with at most two attempts per model. Older 2.5 model access may depend on your Google account. Credentials are sent in the API header, not participant links or request URLs.
+
+Use **Check Gemini connection** in the sidebar, or run `testGeminiConnection` in the Apps Script editor. It calls the real Gemini API with a synthetic future meeting and checks that the explicit times are preserved. It sends no emails and creates no calendar events. Missing keys, access errors, and quota/billing errors appear in the sidebar. This check uses API quota. A successful mock test is not proof that a particular account has API access.
+
+The parser requests structured JSON and validates a nonempty summary, description, explicit timezone offsets, and an end after the start before scheduling. Relative times use the Apps Script timezone; default duration is 30 minutes. Invalid or blocked model responses fail instead of creating an event. Run `node gemini.test.cjs` alongside the existing checks.
+
+The separate sandbox demo's exact-date parser, one-recipient restriction, private test calendar, and temporary polling fallback are not production source and are not included in this branch. Install the branch files into the authorized Apps Script development project and run the connection check before updating a versioned deployment.
